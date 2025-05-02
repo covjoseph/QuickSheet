@@ -128,30 +128,32 @@
         .topic-management-container {
             padding: 1.5em;
         }
-        .orders-table {
+        /* Consistent table styles for both tables */
+        .orders-table, .topic-list {
             width: 100%;
             border-collapse: collapse;
         }
-        .orders-table th, .orders-table td {
+        .orders-table th, .orders-table td, .topic-list th, .topic-list td {
             padding: 1em;
             text-align: left;
             border-bottom: 1px solid #ecf0f1;
         }
-        .orders-table th {
+        .orders-table th, .topic-list th {
             background-color: #f9f9f9;
             font-weight: bold;
             color: #2c3e50;
         }
-        .orders-table tr:hover {
+        .orders-table tr:hover, .topic-list tr:hover {
             background-color: #f5f7f7;
         }
         .status-badge {
             display: inline-block;
-            padding: 0.25em 0.6em;
-            border-radius: 4px;
+            padding: 0.3em 0.8em;
+            border-radius: 20px;
             font-size: 0.85em;
             font-weight: bold;
             text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
         .status-pending {
             background-color: #f39c12;
@@ -175,7 +177,7 @@
             cursor: pointer;
             font-size: 0.9em;
             border: none;
-            transition: background-color 0.3s;
+            transition: all 0.3s ease;
         }
         .btn-view {
             background-color: #3498db;
@@ -187,6 +189,10 @@
         }
         .btn-delete {
             background-color: #e74c3c;
+            color: white;
+        }
+        .btn-green {
+            background-color: #2ecc71;
             color: white;
         }
         .btn-add {
@@ -211,17 +217,24 @@
             z-index: 100;
             justify-content: center;
             align-items: center;
+            overflow-y: auto;
+            padding: 2em 0;
         }
         .modal-content {
             background-color: white;
-            border-radius: 8px;
+            border-radius: 12px; /* Increased border radius for softer appearance */
             max-width: 800px;
             width: 90%;
-            max-height: 90vh;
+            max-height: 85vh;
             overflow-y: auto;
             padding: 2em;
             position: relative;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2); /* Enhanced shadow for depth */
+            margin: auto;
+            transform: translateY(0); /* For animation */
+            transition: transform 0.3s ease-out, opacity 0.3s ease;
+            opacity: 1;
+            border: 1px solid rgba(0,0,0,0.05); /* Subtle border */
         }
         .close-modal {
             position: absolute;
@@ -230,26 +243,21 @@
             font-size: 1.5em;
             cursor: pointer;
             color: #7f8c8d;
-        }
-        .no-orders {
-            padding: 2em;
+            transition: all 0.3s;
+            line-height: 1;
+            z-index: 10;
+            width: 32px;
+            height: 32px;
             text-align: center;
-            color: #7f8c8d;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .topic-list {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1.5em;
-        }
-        .topic-list th, .topic-list td {
-            padding: 1em;
-            text-align: left;
-            border-bottom: 1px solid #ecf0f1;
-        }
-        .topic-list th {
-            background-color: #f9f9f9;
-            font-weight: bold;
-            color: #2c3e50;
+        .close-modal:hover {
+            color: #e74c3c;
+            background-color: #f8f8f8;
+            transform: rotate(90deg);
         }
         .topic-form-group {
             margin-bottom: 1.5em;
@@ -353,6 +361,111 @@
         .sort-asc .sort-icon, .sort-desc .sort-icon {
             color: #3498db;
         }
+        /* Improved styling for the order details inside modals */
+        #orderDetailsContent, #editOrderForm {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2em;
+        }
+        
+        #orderDetailsContent fieldset, #editOrderForm fieldset {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1.2em;
+            margin: 0;
+            background-color: #fcfcfc;
+        }
+        
+        #orderDetailsContent legend, #editOrderForm legend {
+            font-weight: bold;
+            color: #2c3e50;
+            padding: 0 0.5em;
+            margin-bottom: 0.5em;
+        }
+        
+        .topic-info {
+            background-color: #f5f9ff;
+            padding: 1em;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            margin-bottom: 1em;
+        }
+        
+        /* Item styling in order details */
+        .item-header {
+            display: grid;
+            grid-template-columns: 3fr 1fr 1fr 1.5fr;
+            gap: 1em;
+            padding: 0.8em;
+            background-color: #f5f7fa;
+            border-radius: 6px;
+            margin-bottom: 0.5em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .item {
+            display: grid;
+            grid-template-columns: 3fr 1fr 1fr 1.5fr;
+            gap: 1em;
+            padding: 0.8em;
+            border-bottom: 1px solid #eee;
+            align-items: center;
+        }
+        
+        .item:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .order-summary {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1em;
+            margin-top: 1.2em;
+            padding-top: 1em;
+            border-top: 2px solid #eee;
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #2c3e50;
+        }
+        
+        /* Improved styling for edit form elements */
+        #editOrderForm input, #editOrderForm select {
+            padding: 0.8em;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            transition: border-color 0.3s;
+        }
+        
+        #editOrderForm input:focus, #editOrderForm select:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        
+        /* Status badge styles enhancement */
+        .status-badge {
+            display: inline-block;
+            padding: 0.3em 0.8em;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        /* Button styles in modal forms */
+        .modal .btn {
+            padding: 0.8em 1.5em;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .modal .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
@@ -376,12 +489,11 @@
                 <table class="orders-table" id="ordersTable">
                     <thead>
                         <tr>
-                            <th class="sortable" data-sort="topic">Topic <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-sort="division">Division <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-sort="name">Customer <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-sort="date">Date <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-sort="total">Total <span class="sort-icon">↕</span></th>
-                            <th class="sortable" data-sort="status">Status <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-sort="topic">Topic <span class="sort-icon"></span></th>
+                            <th class="sortable" data-sort="division">Division <span class="sort-icon"></span></th>
+                            <th class="sortable" data-sort="name">Customer <span class="sort-icon"></span></th>
+                            <th class="sortable" data-sort="total">Total <span class="sort-icon"></span></th>
+                            <th class="sortable" data-sort="status">Status <span class="sort-icon"></span></th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -403,10 +515,10 @@
                 <table class="topic-list" id="topicListTable">
                     <thead>
                         <tr>
-                            <th>Topic Name</th>
-                            <th>Description</th>
-                            <th>Topic ID</th>
-                            <th>Orders</th>
+                            <th class="sortable" data-sort="topic-name">Topic Name <span class="sort-icon"></span></th>
+                            <th class="sortable" data-sort="description">Description <span class="sort-icon"></span></th>
+                            <th class="sortable" data-sort="orders">Orders <span class="sort-icon"></span></th>
+                            <th class="sortable" data-sort="topic-date">Topic Date <span class="sort-icon"></span></th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -455,6 +567,10 @@
                     <textarea id="topicDescription" name="topicDescription" required></textarea>
                 </div>
                 <div class="topic-form-group">
+                    <label for="topicDate">Topic Date</label>
+                    <input type="date" id="topicDate" name="topicDate">
+                </div>
+                <div class="topic-form-group">
                     <label>Item List</label>
                     <div class="item-list-editor">
                         <div class="item-list-header">
@@ -485,6 +601,49 @@
             <div style="display: flex; justify-content: flex-end; gap: 1em; margin-top: 2em;">
                 <button class="btn" style="background-color: #95a5a6; color: white; padding: 0.8em 1.2em;" id="cancelDeleteBtn">Cancel</button>
                 <button class="btn btn-delete" style="padding: 0.8em 1.2em;" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Topic Edit Modal -->
+    <div class="modal fade" id="editTopicModal" tabindex="-1" role="dialog" aria-labelledby="editTopicModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editTopicModalLabel">Edit Topic</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="editTopicForm">
+                        <input type="hidden" id="editTopicOriginalName" name="originalName">
+                        <div class="form-group">
+                            <label for="editTopicName">Topic Name</label>
+                            <input type="text" class="form-control" id="editTopicName" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editTopicDescription">Description</label>
+                            <textarea class="form-control" id="editTopicDescription" name="description" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="editTopicDate">Topic Date</label>
+                            <input type="date" class="form-control" id="editTopicDate" name="topicDate">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Topic Items</label>
+                            <div id="editTopicItems">
+                                <!-- Items will be added dynamically -->
+                            </div>
+                            <button type="button" class="btn btn-sm btn-primary mt-2" id="addEditItemBtn">Add Item</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveEditTopicBtn">Save Changes</button>
+                </div>
             </div>
         </div>
     </div>
@@ -566,6 +725,23 @@
             });
         });
 
+        // Restore focus to the correct tab after a refresh or page load
+        function setActiveTab(tabName) {
+            const tabToActivate = document.querySelector(`.tab[data-tab="${tabName}"]`);
+            if (tabToActivate) {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => {
+                    c.classList.remove('active');
+                    c.style.display = 'none';
+                });
+                
+                tabToActivate.classList.add('active');
+                const content = document.getElementById(`${tabName}-tab`);
+                content.classList.add('active');
+                content.style.display = 'block';
+            }
+        }
+
         // Close modal buttons (keep existing)
         document.getElementById('closeOrderDetailsModal').addEventListener('click', () => {
             orderDetailsModal.style.display = 'none';
@@ -628,6 +804,7 @@
             topicNameInput.value = '';
             topicDescriptionInput.value = '';
             originalTopicNameInput.value = '';
+            document.getElementById('topicDate').value = '';
             topicModal.style.display = 'flex';
         });
 
@@ -637,6 +814,7 @@
 
             const topicName = topicNameInput.value.trim();
             const topicDescription = topicDescriptionInput.value.trim();
+            const topicDate = document.getElementById('topicDate').value.trim();
             const originalTopicName = originalTopicNameInput.value.trim();
             const isEdit = originalTopicName !== '';
             
@@ -648,6 +826,7 @@
                 const payload = {
                     name: topicName,
                     description: topicDescription,
+                    date: topicDate,
                     items: items
                 };
                 if (isEdit) {
@@ -841,7 +1020,6 @@
             allOrders.forEach(order => {
                 const row = document.createElement('tr');
                 const status = order.status || "pending";
-                const date = order.created_at ? new Date(order.created_at).toLocaleDateString() : 'N/A';
                 const customerName = order.name || 'N/A';
                 const customerDivision = order.division || 'N/A';
                 const totalAmount = typeof order.total === 'number' ? `$${order.total.toFixed(2)}` : 'N/A';
@@ -851,7 +1029,6 @@
                     <td>${topicName}</td>
                     <td>${customerDivision}</td>
                     <td>${customerName}</td>
-                    <td>${date}</td>
                     <td>${totalAmount}</td>
                     <td><span class="status-badge status-${status.toLowerCase()}">${status}</span></td>
                     <td class="action-buttons">
@@ -865,7 +1042,6 @@
                 row.dataset.topic = topicName;
                 row.dataset.division = customerDivision;
                 row.dataset.name = customerName;
-                row.dataset.date = order.created_at || '';
                 row.dataset.total = order.total || 0;
                 row.dataset.status = status;
 
@@ -878,116 +1054,98 @@
 
         // Load topic list for topic management
         function loadTopicList() {
-            console.log("Loading topic list...");
-            // Filter out metadata keys to get actual topic names
-            const topics = Object.keys(allOrdersData).filter(key => !key.endsWith('_meta'));
-            console.log("Topics for list:", topics);
-
-            topicListBody.innerHTML = '';
-
-            if (topics.length === 0) {
-                topicListBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 1em; color: #7f8c8d;">No topics created yet.</td></tr>';
-                return;
+            const topicsList = document.getElementById('topicListBody');
+            topicsList.innerHTML = '';
+            
+            // Get topics from data
+            let topics = [];
+            for (const key in allOrdersData) {
+                if (key.endsWith('_meta')) {
+                    const topicName = key.substring(0, key.length - 5);
+                    const metaData = allOrdersData[key];
+                    const orders = allOrdersData[topicName] || [];
+                    
+                    topics.push({
+                        name: topicName,
+                        description: metaData.description || '',
+                        orders: orders.length,
+                        createdAt: metaData.created_at || '',
+                        topicDate: metaData.topic_date || '',
+                        id: metaData.id || ''
+                    });
+                }
             }
-
+            
+            // Sort topics alphabetically
+            topics.sort((a, b) => a.name.localeCompare(b.name));
+            
+            // Render topics
             topics.forEach(topic => {
-                const orders = allOrdersData[topic] || [];
-                const orderCount = orders.length;
-                const metaKey = topic + "_meta";
-                let description = "No description provided";
-                let topicId = "";
+                const row = document.createElement('tr');
                 
-                if (allOrdersData[metaKey]) {
-                    if (allOrdersData[metaKey].description) {
-                        description = allOrdersData[metaKey].description;
-                    }
-                    if (allOrdersData[metaKey].id) {
-                        topicId = allOrdersData[metaKey].id;
+                // Format dates for display
+                let topicDateDisplay = 'Not set';
+                if (topic.topicDate) {
+                    try {
+                        const date = new Date(topic.topicDate);
+                        topicDateDisplay = date.toLocaleDateString();
+                    } catch (e) {
+                        console.error("Error formatting topic date:", e);
+                        topicDateDisplay = topic.topicDate;
                     }
                 }
-
-                const row = document.createElement('tr');
+                
                 row.innerHTML = `
-                    <td><a href="#" class="topic-name-link" data-topic="${topic}">${topic}</a></td>
-                    <td>${description}</td>
-                    <td>${topicId ? topicId.substring(0, 8) + '...' : 'N/A'}</td>
-                    <td>${orderCount}</td>
+                    <td>${topic.name}</td>
+                    <td>${topic.description}</td>
+                    <td>${topic.orders}</td>
+                    <td>${topicDateDisplay}</td>
                     <td class="action-buttons">
-                        <button class="btn btn-edit" data-topic="${topic}">Edit</button>
-                        <button class="btn btn-delete" data-topic="${topic}" data-has-orders="${orderCount > 0}">Delete</button>
+                        <a href="/order/${topic.id}" target="_blank" class="btn btn-green" style="text-decoration: none;">Place Order</a>
+                        <button class="btn btn-edit" onclick="editTopic('${topic.name}')">Edit</button>
+                        <button class="btn btn-delete" onclick="deleteTopic('${topic.name}', ${topic.orders > 0})">Delete</button>
                     </td>
                 `;
-
-                topicListBody.appendChild(row);
+                
+                topicsList.appendChild(row);
             });
-
-            // Add event listeners for topic name links
-            document.querySelectorAll('.topic-name-link').forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const topicName = link.getAttribute('data-topic');
-                    // Switch to orders tab
-                    document.querySelector('.tab[data-tab="orders"]').click();
-                    // Find and click on the topic tab
-                    const topicTabs = document.querySelectorAll('.topic-tab');
-                    for (const tab of topicTabs) {
-                        if (tab.textContent === topicName) {
-                            tab.click();
-                            break;
-                        }
-                    }
-                });
-            });
-
-            document.querySelectorAll('#topicListBody .btn-edit').forEach(btn => {
-                btn.addEventListener('click', () => editTopic(btn.dataset.topic));
-            });
-
-            document.querySelectorAll('#topicListBody .btn-delete').forEach(btn => {
-                btn.addEventListener('click', () => deleteTopic(btn.dataset.topic, btn.dataset.hasOrders === 'true'));
-            });
-            console.log("Topic list loaded.");
-        }
-
-        // Function to open a new order form in a new tab
-        function openNewOrder(topicId) {
-            const url = window.location.origin + `/order/${topicId}`;
-            window.open(url, '_blank');
         }
 
         // Edit topic
         function editTopic(topicName) {
-            const orders = allOrdersData[topicName];
+            // Get topic metadata
             const metaKey = topicName + "_meta";
-
-            if (!orders) {
-                alert('Topic not found in data.');
-                return;
-            }
-
-            let description = "";
-            let items = [];
+            const topicMeta = allOrdersData[metaKey] || {};
             
-            if (allOrdersData[metaKey]) {
-                if (allOrdersData[metaKey].description) {
-                    description = allOrdersData[metaKey].description;
-                }
-                if (allOrdersData[metaKey].items) {
-                    items = allOrdersData[metaKey].items;
-                }
-            } else if (orders.length > 0 && orders[0]?.description) {
-                description = orders[0].description;
-            }
-
+            // Populate the regular topic form instead of using a separate editTopicForm
             topicModalTitle.textContent = 'Edit Topic';
             topicNameInput.value = topicName;
-            topicDescriptionInput.value = description;
+            topicDescriptionInput.value = topicMeta.description || "";
             originalTopicNameInput.value = topicName;
             
-            // Populate the item editor with the topic's items
-            populateItemEditor(items);
-
-            topicModal.style.display = 'flex';
+            // Set the topic date if it exists
+            if (topicMeta.topic_date) {
+                // Format the date as YYYY-MM-DD for the date input
+                try {
+                    const dateObj = new Date(topicMeta.topic_date);
+                    const year = dateObj.getFullYear();
+                    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                    const day = String(dateObj.getDate()).padStart(2, '0');
+                    document.getElementById("topicDate").value = `${year}-${month}-${day}`;
+                } catch (e) {
+                    console.error("Error formatting topic date:", e);
+                    // If there's an error, try to use the raw value
+                    document.getElementById("topicDate").value = topicMeta.topic_date;
+                }
+            } else {
+                document.getElementById("topicDate").value = "";
+            }
+            
+            // Load items into the editor
+            populateItemEditor(topicMeta.items || []);
+            
+            // Show the modal
+            topicModal.style.display = "flex";
         }
 
         // Delete topic
@@ -1059,7 +1217,6 @@
             orders.forEach(order => {
                 const row = document.createElement('tr');
                 const status = order.status || "pending";
-                const date = order.created_at ? new Date(order.created_at).toLocaleDateString() : 'N/A';
                 const customerName = order.name || 'N/A';
                 const customerDivision = order.division || 'N/A';
                 const totalAmount = typeof order.total === 'number' ? `$${order.total.toFixed(2)}` : 'N/A';
@@ -1068,7 +1225,6 @@
                     <td>${topicName}</td>
                     <td>${customerDivision}</td>
                     <td>${customerName}</td>
-                    <td>${date}</td>
                     <td>${totalAmount}</td>
                     <td><span class="status-badge status-${status.toLowerCase()}">${status}</span></td>
                     <td class="action-buttons">
@@ -1082,7 +1238,6 @@
                 row.dataset.topic = topicName;
                 row.dataset.division = customerDivision;
                 row.dataset.name = customerName;
-                row.dataset.date = order.created_at || '';
                 row.dataset.total = order.total || 0;
                 row.dataset.status = status;
 
@@ -1106,13 +1261,6 @@
                 if (column === 'total') {
                     valueA = parseFloat(valueA) || 0;
                     valueB = parseFloat(valueB) || 0;
-                    return direction === 'asc' ? valueA - valueB : valueB - valueA;
-                }
-                
-                // For date columns
-                if (column === 'date') {
-                    valueA = valueA ? new Date(valueA).getTime() : 0;
-                    valueB = valueB ? new Date(valueB).getTime() : 0;
                     return direction === 'asc' ? valueA - valueB : valueB - valueA;
                 }
                 
@@ -1533,10 +1681,9 @@
             const topic = order.topic || 'Unknown';
             const customerName = order.name || 'Unknown';
             const customerDivision = order.division || 'Unknown';
-            const date = order.created_at ? new Date(order.created_at).toLocaleDateString() : 'Unknown date';
             const totalAmount = typeof order.total === 'number' ? `$${order.total.toFixed(2)}` : 'Unknown amount';
             
-            const confirmMessage = `Are you sure you want to delete this order?\n\nTopic: ${topic}\nDivision: ${customerDivision}\nCustomer: ${customerName}\nDate: ${date}\nTotal: ${totalAmount}\n\nThis action cannot be undone.`;
+            const confirmMessage = `Are you sure you want to delete this order?\n\nTopic: ${topic}\nDivision: ${customerDivision}\nCustomer: ${customerName}\nTotal: ${totalAmount}\n\nThis action cannot be undone.`;
             
             if (confirm(confirmMessage)) {
                 fetch('/delete-order', {
@@ -1574,10 +1721,21 @@
         const itemListContainer = document.getElementById('itemListContainer');
         const addItemBtn = document.getElementById('addItemBtn');
 
-        // Add item to the list
-        addItemBtn.addEventListener('click', () => {
-            addItemRow();
-        });
+        // Function to load topic items into the form
+        function loadTopicItemsToForm(items, containerId) {
+            // Clear any existing items first
+            itemListContainer.innerHTML = '';
+            
+            // Add each item from the topic
+            if (items && items.length > 0) {
+                items.forEach(item => {
+                    addItemRow(item);
+                });
+            } else {
+                // Add at least one empty row if no items
+                addItemRow();
+            }
+        }
 
         // Function to add an item row to the editor
         function addItemRow(item = { name: '', price: 0 }) {
@@ -1635,6 +1793,46 @@
                 addItemRow();
             }
         }
+
+        // Make editTopic and deleteTopic functions globally available
+        window.editTopic = editTopic;
+        window.deleteTopic = deleteTopic;
+
+        // Add item to the list
+        addItemBtn.addEventListener('click', () => {
+            addItemRow();
+        });
+
+        // Enhanced stylings for modal forms to ensure consistency
+        document.addEventListener('DOMContentLoaded', () => {
+            // Apply styles to form inputs inside modals
+            const modalInputs = document.querySelectorAll('.modal input[type="text"], .modal input[type="number"], .modal input[type="email"], .modal input[type="tel"], .modal textarea, .modal select');
+            
+            modalInputs.forEach(input => {
+                input.style.width = '100%';
+                input.style.padding = '0.6em';
+                input.style.boxSizing = 'border-box';
+                input.style.borderRadius = '4px';
+                input.style.border = '1px solid #ddd';
+                input.style.marginBottom = '0.5em';
+                input.style.marginTop = '0.3em';
+                input.style.transition = 'border-color 0.3s ease';
+            });
+            
+            // Add hover effects to buttons
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => {
+                btn.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-2px)';
+                    this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+                });
+                
+                btn.addEventListener('mouseleave', function() {
+                    this.style.transform = '';
+                    this.style.boxShadow = '';
+                });
+            });
+        });
 
         // Initialize the dashboard when the page loads
         document.addEventListener('DOMContentLoaded', async () => {

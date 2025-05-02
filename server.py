@@ -11,8 +11,36 @@ app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
 
+# Define path to data directory
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+
+# Ensure data directory exists
+if not os.path.exists(DATA_DIR):
+    print(f"Creating data directory: {DATA_DIR}")
+    os.makedirs(DATA_DIR)
+
 # Session timeout set to 30 minutes
 app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(minutes=30)
+
+# Create empty JSON files if they don't exist
+def initialize_data_files():
+    orders_file_path = os.path.join(DATA_DIR, 'orders.json')
+    topics_file_path = os.path.join(DATA_DIR, 'topics.json')
+    
+    # Create empty orders.json if it doesn't exist
+    if not os.path.exists(orders_file_path):
+        print(f"Creating empty orders.json file")
+        with open(orders_file_path, 'w') as f:
+            json.dump({}, f, indent=4)
+    
+    # Create empty topics.json if it doesn't exist
+    if not os.path.exists(topics_file_path):
+        print(f"Creating empty topics.json file")
+        with open(topics_file_path, 'w') as f:
+            json.dump({}, f, indent=4)
+
+# Call initialization function
+initialize_data_files()
 
 # Middleware function to check if user is logged in
 def admin_login_required(route_function):
@@ -26,7 +54,7 @@ def admin_login_required(route_function):
 
 def load_orders_data():
     try:
-        with open('orders.json', 'r') as file:
+        with open(os.path.join(DATA_DIR, 'orders.json'), 'r') as file:
             data = json.load(file)
             if isinstance(data, list) and len(data) == 1 and isinstance(data[0], dict):
                 return data[0]
@@ -48,12 +76,12 @@ def save_orders_data(data):
             data = data[0]
         else:
             raise TypeError("Data to be saved must be a dictionary.")
-    with open('orders.json', 'w') as file:
+    with open(os.path.join(DATA_DIR, 'orders.json'), 'w') as file:
         json.dump(data, file, indent=4)
 
 def load_topics_data():
     try:
-        with open('topics.json', 'r') as file:
+        with open(os.path.join(DATA_DIR, 'topics.json'), 'r') as file:
             print("DEBUG: Loading topics.json file")
             
             # Capture file content for logging
@@ -91,22 +119,22 @@ def save_topics_data(data):
     if not isinstance(data, dict):
         print("Error: Attempting to save non-dictionary data to topics.json.")
         raise TypeError("Data to be saved must be a dictionary.")
-    with open('topics.json', 'w') as file:
+    with open(os.path.join(DATA_DIR, 'topics.json'), 'w') as file:
         json.dump(data, file, indent=4)
 
 # Helper function to get topic ID by name
 def get_topic_id_by_name(topic_name):
     topics_data = load_topics_data()
-    if topic_name in topics_data and 'id' in topics_data[topic_name]:
-        return topics_data[topic_name]['id']
+    for topic_id, topic_info in topics_data.items():
+        if topic_info.get('name') == topic_name:
+            return topic_id
     return None
 
 # Helper function to get topic name by ID
 def get_topic_name_by_id(topic_id):
     topics_data = load_topics_data()
-    for name, info in topics_data.items():
-        if info.get('id') == topic_id:
-            return name
+    if topic_id in topics_data:
+        return topics_data[topic_id].get('name')
     return None
 
 # Function to migrate topic data from orders.json to topics.json (run once)
@@ -131,7 +159,8 @@ def migrate_topics_from_orders():
                     if 'id' not in topic_metadata:
                         topic_metadata['id'] = str(uuid.uuid4())
                         
-                    topics_data[topic_name] = {
+                    topics_data[topic_metadata['id']] = {
+                        'name': topic_name,
                         'description': topic_metadata.get('description', ''),
                         'created_at': topic_metadata.get('created_at', datetime.datetime.now().isoformat()),
                         'id': topic_metadata['id']
@@ -180,49 +209,37 @@ def create_topic():
     topic_name = topic_data.get('name', '').strip()
     topic_description = topic_data.get('description', '').strip()
     topic_items = topic_data.get('items', [])
+    topic_date = topic_data.get('date', '')
 
     if not topic_name:
         return jsonify({"success": False, "error": "Topic name is required"}), 400
 
     try:
-        # Load both orders and topics
+        # Load topics
         topics_data = load_topics_data()
-        orders_data = load_orders_data()
         
         # Check if topic already exists
-        if topic_name in topics_data:
-            return jsonify({"success": False, "error": "Topic already exists"}), 400
-
-        # Generate a unique ID for the topic
+        for _, topic_info in topics_data.items():
+            if topic_info.get('name') == topic_name:
+                return jsonify({"success": False, "error": "Topic with this name already exists"}), 400
+        
+        # Generate topic ID
         topic_id = str(uuid.uuid4())
         
-        # Create topic entry in topics.json
-        topics_data[topic_name] = {
-            "description": topic_description,
-            "created_at": datetime.datetime.now().isoformat(),
-            "id": topic_id,
-            "items": topic_items  # Store items with the topic
+        # Create new topic
+        topics_data[topic_id] = {
+            'name': topic_name,
+            'description': topic_description,
+            'items': topic_items,
+            'created_at': datetime.datetime.now().isoformat(),
+            'topic_date': topic_date,
+            'id': topic_id
         }
         
-        # Create empty order array in orders.json using the UUID as the key
-        orders_data[topic_id] = []
-        
-        # Save both files
         save_topics_data(topics_data)
-        save_orders_data(orders_data)
-
-        response_data = {
-            "success": True,
-            "topic": {
-                "name": topic_name,
-                "description": topic_description,
-                "items": topic_items,
-                "order_count": 0,
-                "id": topic_id
-            }
-        }
-        return jsonify(response_data), 200
-
+        
+        return jsonify({"success": True, "topic_id": topic_id}), 201
+        
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -242,18 +259,18 @@ def get_admin_data():
         
         # Print topic names and IDs for debugging
         print("DEBUG: Topics available:")
-        for topic_name, topic_info in topics_data.items():
-            topic_id = topic_info.get('id', 'NO_ID')
+        for topic_id, topic_info in topics_data.items():
+            topic_name = topic_info.get('name', 'NO_NAME')
             print(f"DEBUG:   - Topic: '{topic_name}', ID: '{topic_id}'")
         
         # Create a combined data structure that uses topic names as keys for backwards compatibility with the frontend
         combined_data = {}
         
         # Process each topic in topics.json
-        for topic_name, topic_info in topics_data.items():
-            topic_id = topic_info.get('id')
-            if not topic_id:
-                print(f"DEBUG: WARNING: Topic {topic_name} has no ID - skipping")
+        for topic_id, topic_info in topics_data.items():
+            topic_name = topic_info.get('name')
+            if not topic_name:
+                print(f"DEBUG: WARNING: Topic ID {topic_id} has no name - skipping")
                 continue
                 
             # Store the metadata with the _meta suffix
@@ -261,7 +278,8 @@ def get_admin_data():
                 "description": topic_info.get("description", ""),
                 "created_at": topic_info.get("created_at", ""),
                 "id": topic_id,
-                "items": topic_info.get("items", [])  # Include items in the meta data
+                "items": topic_info.get("items", []),  # Include items in the meta data
+                "topic_date": topic_info.get("topic_date", "")  # Include topic date
             }
             
             # Get orders for this topic ID from orders.json
@@ -292,19 +310,19 @@ def get_admin_data():
 # New function to get topic details for rendering
 def get_topic_details_by_id(topic_id):
     topics_data = load_topics_data()
-    for topic_name, topic_info in topics_data.items():
-        if topic_info.get("id") == topic_id:
-            items = topic_info.get("items", [])
-            # Ensure items is always a list
-            if not isinstance(items, list):
-                items = []
-            return {
-                "name": topic_name,
-                "description": topic_info.get("description", ""),
-                "id": topic_id,
-                "created_at": topic_info.get("created_at", ""),
-                "items": items
-            }
+    if topic_id in topics_data:
+        topic_info = topics_data[topic_id]
+        items = topic_info.get('items', [])
+        # Ensure items is always a list
+        if not isinstance(items, list):
+            items = []
+        return {
+            "name": topic_info.get("name"),
+            "description": topic_info.get("description", ""),
+            "id": topic_id,
+            "created_at": topic_info.get("created_at", ""),
+            "items": items
+        }
     return None
 
 @app.route('/order/<topic_id>')
@@ -551,13 +569,11 @@ def delete_topic():
         topics_data = load_topics_data()
         orders_data = load_orders_data()
         
-        # Check if topic exists
-        if topic_name not in topics_data:
+        # Find the topic ID
+        topic_id = get_topic_id_by_name(topic_name)
+        if not topic_id:
             return jsonify({"success": False, "error": "Topic not found"}), 404
             
-        # Get the topic ID before deleting
-        topic_id = topics_data[topic_name].get('id')
-        
         # Check if there are orders for this topic
         if topic_id in orders_data and orders_data[topic_id]:
             return jsonify({
@@ -566,7 +582,7 @@ def delete_topic():
             }), 400
             
         # Delete topic from topics.json
-        del topics_data[topic_name]
+        del topics_data[topic_id]
         
         # Delete the empty orders array from orders.json if it exists
         if topic_id in orders_data:
@@ -709,56 +725,48 @@ def update_order():
 @admin_login_required
 def update_topic():
     topic_data = request.json
-    new_topic_name = topic_data.get('name', '').strip()
+    topic_name = topic_data.get('name', '').strip()
     topic_description = topic_data.get('description', '').strip()
     original_topic_name = topic_data.get('originalName', '').strip()
     topic_items = topic_data.get('items', [])
+    topic_date = topic_data.get('date', '')
 
-    if not new_topic_name or not original_topic_name:
+    if not topic_name or not original_topic_name:
         return jsonify({"success": False, "error": "Topic name is required"}), 400
 
     try:
-        # Load both orders and topics
+        # Load topics
         topics_data = load_topics_data()
-        orders_data = load_orders_data()
         
-        # Check if original topic exists
-        if original_topic_name not in topics_data:
+        # Check if topic exists
+        found = False
+        topic_id = None
+        for tid, topic_info in topics_data.items():
+            if topic_info.get('name') == original_topic_name:
+                found = True
+                topic_id = tid
+                break
+                
+        if not found:
             return jsonify({"success": False, "error": "Original topic not found"}), 404
             
-        # Check if new name already exists (if name is being changed)
-        if new_topic_name != original_topic_name and new_topic_name in topics_data:
-            return jsonify({"success": False, "error": "A topic with this name already exists"}), 400
-            
-        # Get the topic ID
-        topic_id = topics_data[original_topic_name].get('id')
-        if not topic_id:
-            return jsonify({"success": False, "error": "Topic ID not found"}), 500
-            
-        # If renaming the topic
-        if new_topic_name != original_topic_name:
-            # Create new entry with updated name
-            topics_data[new_topic_name] = {
-                "description": topic_description,
-                "created_at": topics_data[original_topic_name].get('created_at', datetime.datetime.now().isoformat()),
-                "id": topic_id,
-                "items": topic_items
-            }
-            
-            # Remove old entry
-            del topics_data[original_topic_name]
-        else:
-            # Just update the existing topic
-            topics_data[original_topic_name]["description"] = topic_description
-            topics_data[original_topic_name]["items"] = topic_items
+        # Check if new name already exists (only if name is changing)
+        if topic_name != original_topic_name:
+            name_exists = any(topic_info.get('name') == topic_name for _, topic_info in topics_data.items())
+            if name_exists:
+                return jsonify({"success": False, "error": "Topic with this name already exists"}), 400
         
-        # Save the updated topics data
+        # Update topic info
+        topics_data[topic_id]['name'] = topic_name
+        topics_data[topic_id]['description'] = topic_description
+        topics_data[topic_id]['items'] = topic_items
+        topics_data[topic_id]['topic_date'] = topic_date
+        
         save_topics_data(topics_data)
-
-        return jsonify({"success": True, "message": "Topic updated successfully"}), 200
-
+        
+        return jsonify({"success": True}), 200
+        
     except Exception as e:
-        print(f"Error updating topic: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 if __name__ == '__main__':
