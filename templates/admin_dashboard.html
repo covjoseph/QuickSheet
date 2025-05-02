@@ -2,8 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=deviwidth, initial-scale=1.0">
     <title>Admin Dashboard</title>
+    <!-- Add explicit favicon links with direct paths -->
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon">
+    <!-- Updated Font Awesome for icons to fix bbox warning -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -167,6 +172,25 @@
             background-color: #e74c3c;
             color: white;
         }
+        /* Topic state badge styles */
+        .state-badge {
+            display: inline-block;
+            padding: 0.3em 0.8em;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .state-draft {
+            background-color: #95a5a6;
+            color: white;
+        }
+        .state-launched {
+            background-color: #27ae60;
+            color: white;
+        }
+        /* Action button styling */
         .action-buttons {
             display: flex;
             gap: 0.5em;
@@ -178,6 +202,17 @@
             font-size: 0.9em;
             border: none;
             transition: all 0.3s ease;
+        }
+        /* Icon button styles */
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .btn-view {
             background-color: #3498db;
@@ -205,6 +240,10 @@
             opacity: 0.9;
             transform: translateY(-2px);
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .btn-icon:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
         .modal {
             display: none;
@@ -517,6 +556,7 @@
                         <tr>
                             <th class="sortable" data-sort="topic-name">Topic Name <span class="sort-icon"></span></th>
                             <th class="sortable" data-sort="description">Description <span class="sort-icon"></span></th>
+                            <th>State</th>
                             <th class="sortable" data-sort="orders">Orders <span class="sort-icon"></span></th>
                             <th class="sortable" data-sort="topic-date">Topic Date <span class="sort-icon"></span></th>
                             <th>Actions</th>
@@ -1032,9 +1072,9 @@
                     <td>${totalAmount}</td>
                     <td><span class="status-badge status-${status.toLowerCase()}">${status}</span></td>
                     <td class="action-buttons">
-                        <button class="btn btn-view" data-id="${order.id}">View</button>
-                        <button class="btn btn-edit" data-id="${order.id}">Edit</button>
-                        <button class="btn btn-delete" data-id="${order.id}">Delete</button>
+                        <button class="btn btn-icon btn-view" data-id="${order.id}" title="View Order"><i class="fas fa-eye"></i></button>
+                        <button class="btn btn-icon btn-edit" data-id="${order.id}" title="Edit Order"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-icon btn-delete" data-id="${order.id}" title="Delete Order"><i class="fas fa-trash-alt"></i></button>
                     </td>
                 `;
 
@@ -1068,6 +1108,7 @@
                     topics.push({
                         name: topicName,
                         description: metaData.description || '',
+                        state: metaData.state || 'draft',
                         orders: orders.length,
                         createdAt: metaData.created_at || '',
                         topicDate: metaData.topic_date || '',
@@ -1095,15 +1136,22 @@
                     }
                 }
                 
+                // Determine if delete button should be shown based on whether there are orders
+                const hasOrders = topic.orders > 0;
+                const deleteButton = hasOrders ? 
+                    '' : 
+                    `<button class="btn btn-icon btn-delete" onclick="deleteTopic('${topic.name}', ${hasOrders})" title="Delete Topic"><i class="fas fa-trash-alt"></i></button>`;
+                
                 row.innerHTML = `
                     <td>${topic.name}</td>
                     <td>${topic.description}</td>
+                    <td><span class="state-badge state-${topic.state}">${topic.state}</span></td>
                     <td>${topic.orders}</td>
                     <td>${topicDateDisplay}</td>
                     <td class="action-buttons">
-                        <a href="/order/${topic.id}" target="_blank" class="btn btn-green" style="text-decoration: none;">Place Order</a>
-                        <button class="btn btn-edit" onclick="editTopic('${topic.name}')">Edit</button>
-                        <button class="btn btn-delete" onclick="deleteTopic('${topic.name}', ${topic.orders > 0})">Delete</button>
+                        <button class="btn btn-icon btn-green" onclick="window.open('/order/${topic.id}', '_blank')" title="Place Order"><i class="fas fa-cart-plus"></i></button>
+                        <button class="btn btn-icon btn-edit" onclick="editTopic('${topic.name}')" title="Edit Topic"><i class="fas fa-edit"></i></button>
+                        ${deleteButton}
                     </td>
                 `;
                 
@@ -1228,9 +1276,9 @@
                     <td>${totalAmount}</td>
                     <td><span class="status-badge status-${status.toLowerCase()}">${status}</span></td>
                     <td class="action-buttons">
-                        <button class="btn btn-view" data-id="${order.id}">View</button>
-                        <button class="btn btn-edit" data-id="${order.id}">Edit</button>
-                        <button class="btn btn-delete" data-id="${order.id}">Delete</button>
+                        <button class="btn btn-icon btn-view" data-id="${order.id}" title="View Order"><i class="fas fa-eye"></i></button>
+                        <button class="btn btn-icon btn-edit" data-id="${order.id}" title="Edit Order"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-icon btn-delete" data-id="${order.id}" title="Delete Order"><i class="fas fa-trash-alt"></i></button>
                     </td>
                 `;
 

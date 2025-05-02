@@ -4,28 +4,28 @@ import uuid
 import datetime
 import os
 import secrets
+import config  # Import the new config file
 
 app = Flask(__name__)
-app.secret_key = secrets.token_hex(16)  # Generate a secure random secret key for sessions
-app.config['SESSION_TYPE'] = 'filesystem'
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+# Apply configuration from config.py
+app.secret_key = config.APP['secret_key']
+app.config['SESSION_TYPE'] = config.APP['session_type']
+app.config['SESSION_COOKIE_HTTPONLY'] = config.APP['session_cookie_httponly']
+app.config['SESSION_COOKIE_SECURE'] = config.APP['session_cookie_secure']
+app.config['PERMANENT_SESSION_LIFETIME'] = config.APP['permanent_session_lifetime']
 
-# Define path to data directory
-DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+# Define path to data directory from config
+DATA_DIR = config.DATA['dir']
 
 # Ensure data directory exists
 if not os.path.exists(DATA_DIR):
     print(f"Creating data directory: {DATA_DIR}")
     os.makedirs(DATA_DIR)
 
-# Session timeout set to 30 minutes
-app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(minutes=30)
-
 # Create empty JSON files if they don't exist
 def initialize_data_files():
-    orders_file_path = os.path.join(DATA_DIR, 'orders.json')
-    topics_file_path = os.path.join(DATA_DIR, 'topics.json')
+    orders_file_path = os.path.join(DATA_DIR, config.DATA['orders_file'])
+    topics_file_path = os.path.join(DATA_DIR, config.DATA['topics_file'])
     
     # Create empty orders.json if it doesn't exist
     if not os.path.exists(orders_file_path):
@@ -54,7 +54,7 @@ def admin_login_required(route_function):
 
 def load_orders_data():
     try:
-        with open(os.path.join(DATA_DIR, 'orders.json'), 'r') as file:
+        with open(os.path.join(DATA_DIR, config.DATA['orders_file']), 'r') as file:
             data = json.load(file)
             if isinstance(data, list) and len(data) == 1 and isinstance(data[0], dict):
                 return data[0]
@@ -76,12 +76,12 @@ def save_orders_data(data):
             data = data[0]
         else:
             raise TypeError("Data to be saved must be a dictionary.")
-    with open(os.path.join(DATA_DIR, 'orders.json'), 'w') as file:
+    with open(os.path.join(DATA_DIR, config.DATA['orders_file']), 'w') as file:
         json.dump(data, file, indent=4)
 
 def load_topics_data():
     try:
-        with open(os.path.join(DATA_DIR, 'topics.json'), 'r') as file:
+        with open(os.path.join(DATA_DIR, config.DATA['topics_file']), 'r') as file:
             print("DEBUG: Loading topics.json file")
             
             # Capture file content for logging
@@ -119,7 +119,7 @@ def save_topics_data(data):
     if not isinstance(data, dict):
         print("Error: Attempting to save non-dictionary data to topics.json.")
         raise TypeError("Data to be saved must be a dictionary.")
-    with open(os.path.join(DATA_DIR, 'topics.json'), 'w') as file:
+    with open(os.path.join(DATA_DIR, config.DATA['topics_file']), 'w') as file:
         json.dump(data, file, indent=4)
 
 # Helper function to get topic ID by name
@@ -183,7 +183,7 @@ migrate_topics_from_orders()
 @app.route('/admin-login', methods=['POST'])
 def admin_login():
     auth_data = request.json
-    if auth_data.get('username') == 'admin' and auth_data.get('password') == 'admin123':
+    if auth_data.get('username') == config.ADMIN['username'] and auth_data.get('password') == config.ADMIN['password']:
         session['admin_logged_in'] = True
         session.permanent = True  # Use the permanent session lifetime
         return jsonify({"success": True}), 200
@@ -226,14 +226,15 @@ def create_topic():
         # Generate topic ID
         topic_id = str(uuid.uuid4())
         
-        # Create new topic
+        # Create new topic - default state is "draft"
         topics_data[topic_id] = {
             'name': topic_name,
             'description': topic_description,
             'items': topic_items,
             'created_at': datetime.datetime.now().isoformat(),
             'topic_date': topic_date,
-            'id': topic_id
+            'id': topic_id,
+            'state': 'draft'  # Default state is draft
         }
         
         save_topics_data(topics_data)
@@ -279,7 +280,8 @@ def get_admin_data():
                 "created_at": topic_info.get("created_at", ""),
                 "id": topic_id,
                 "items": topic_info.get("items", []),  # Include items in the meta data
-                "topic_date": topic_info.get("topic_date", "")  # Include topic date
+                "topic_date": topic_info.get("topic_date", ""),  # Include topic date
+                "state": topic_info.get("state", "draft")  # Include topic state, default to draft
             }
             
             # Get orders for this topic ID from orders.json
@@ -547,7 +549,24 @@ def failure():
 
 @app.route('/favicon.ico')
 def favicon():
-    return send_from_directory('static', 'favicon.ico')
+    try:
+        # Get absolute path to the static directory
+        static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+        print(f"DEBUG: Favicon request received. Looking for file at: {os.path.join(static_dir, 'favicon.ico')}")
+        print(f"DEBUG: Current working directory: {os.getcwd()}")
+        print(f"DEBUG: App root path: {app.root_path}")
+        print(f"DEBUG: File exists: {os.path.exists(os.path.join(static_dir, 'favicon.ico'))}")
+        
+        # Serve the file directly using send_file instead of send_from_directory
+        return send_from_directory(static_dir, 'favicon.ico', mimetype='image/x-icon')
+    except Exception as e:
+        print(f"ERROR: Failed to serve favicon: {str(e)}")
+        # Try alternative static directory path as fallback
+        try:
+            return send_from_directory('static', 'favicon.ico', mimetype='image/x-icon')
+        except Exception as e2:
+            print(f"ERROR: Fallback failed: {str(e2)}")
+            return "", 404
 
 @app.route('/static/<path:path>')
 def static_files(path):
@@ -749,6 +768,11 @@ def update_topic():
                 
         if not found:
             return jsonify({"success": False, "error": "Original topic not found"}), 404
+        
+        # Check if topic is in launched state and reject edits
+        # We don't check for this if the request is specifically to change the state
+        if topics_data[topic_id].get('state') == 'launched' and not topic_data.get('stateChange'):
+            return jsonify({"success": False, "error": "Cannot edit a launched topic. Unlaunch the topic first."}), 400
             
         # Check if new name already exists (only if name is changing)
         if topic_name != original_topic_name:
@@ -769,5 +793,71 @@ def update_topic():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@app.route('/launch-topic', methods=['POST'])
+@admin_login_required
+def launch_topic():
+    """Change a topic's state to 'launched'"""
+    try:
+        # Get topic data from request
+        data = request.json
+        topic_id = data.get('topic_id')
+        
+        if not topic_id:
+            return jsonify({"success": False, "error": "Topic ID is required"}), 400
+            
+        # Load topics data
+        topics_data = load_topics_data()
+        
+        # Check if topic exists
+        if topic_id not in topics_data:
+            return jsonify({"success": False, "error": "Topic not found"}), 404
+            
+        # Update topic state
+        topics_data[topic_id]['state'] = 'launched'
+        
+        # Save topic data
+        save_topics_data(topics_data)
+        
+        return jsonify({"success": True, "message": "Topic launched successfully"}), 200
+        
+    except Exception as e:
+        print(f"Error launching topic: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/unlaunch-topic', methods=['POST'])
+@admin_login_required
+def unlaunch_topic():
+    """Change a topic's state back to 'draft'"""
+    try:
+        # Get topic data from request
+        data = request.json
+        topic_id = data.get('topic_id')
+        
+        if not topic_id:
+            return jsonify({"success": False, "error": "Topic ID is required"}), 400
+            
+        # Load topics data
+        topics_data = load_topics_data()
+        
+        # Check if topic exists
+        if topic_id not in topics_data:
+            return jsonify({"success": False, "error": "Topic not found"}), 404
+            
+        # Update topic state
+        topics_data[topic_id]['state'] = 'draft'
+        
+        # Save topic data
+        save_topics_data(topics_data)
+        
+        return jsonify({"success": True, "message": "Topic unlaunched successfully"}), 200
+        
+    except Exception as e:
+        print(f"Error unlaunching topic: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    app.run(
+        host=config.SERVER['host'], 
+        port=config.SERVER['port'], 
+        debug=config.SERVER['debug']
+    )

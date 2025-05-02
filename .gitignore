@@ -29,3 +29,6 @@ build/
 
 # Data folder
 data/
+
+# Specific files to ignore
+hello_world.py
