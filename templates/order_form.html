@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Order Form - {{ topic.name }}</title>
+    <style>
+        /* Additional styles for dynamic order calculation */
+        .item-header, .item {
+            display: grid;
+            grid-template-columns: 3fr 1fr 1fr 1.5fr;
+            gap: 1em;
+            align-items: center;
+        }
+        
+        .subtotal {
+            font-weight: bold;
+            text-align: right;
+        }
+        
+        .order-summary {
+            margin-top: 2em;
+            border-top: 2px solid #ecf0f1;
+            padding-top: 1em;
+            text-align: right;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .price, .subtotal {
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Order Form</h1>
+    </header>
+    <main>
+        <form id="orderForm" action="{{ url_for('submit_order') }}" method="POST">
+            <div class="topic-info">
+                <p><strong>Topic:</strong> <span id="topic">{{ topic.name }}</span></p>
+                <p><strong>Description:</strong> <span id="description">{{ topic.description }}</span></p>
+                <input type="hidden" name="topic_id" value="{{ topic.id }}">
+            </div>
+            
+            <fieldset>
+                <legend>Customer Details</legend>
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name" required>
+
+                <label for="division">Division Number:</label>
+                <input type="number" id="division" name="division" required>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1em;">
+                    <div>
+                        <label for="email">Email:</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    <div>
+                        <label for="phone">Phone Number:</label>
+                        <input type="tel" id="phone" name="phone" required>
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Order Details</legend>
+                <div id="items">
+                    <div class="item-header">
+                        <div>Item Name</div>
+                        <div>Price ($)</div>
+                        <div>Quantity</div>
+                        <div>Subtotal ($)</div>
+                    </div>
+                    
+                    <!-- Manually list items without using topic.items -->
+                    {% for item in topic_items %}
+                    <div class="item" data-price="{{ item.price }}">
+                        <span class="item-name">{{ item.name }}</span>
+                        <span class="price">{{ "%.2f"|format(item.price) }}</span>
+                        <input type="number" class="quantity" name="quantity_{{ item.name }}" min="0" value="0" required>
+                        <span class="subtotal">$0.00</span>
+                    </div>
+                    {% else %}
+                    <p>No items defined for this topic.</p>
+                    {% endfor %}
+                    
+                    <div class="order-summary">
+                        <span>Order Total: </span>
+                        <span id="orderTotal">$0.00</span>
+                    </div>
+                </div>
+            </fieldset>
+
+            <button type="submit" id="submitButton">Submit Order</button>
+        </form>
+    </main>
+    <footer>
+        <p>Thank you for shopping with us!</p>
+    </footer>
+    
+    <script>
+        // Function to update item subtotal based on quantity and price
+        function updateSubtotal(quantityInput) {
+            // Get the parent item element
+            const itemElement = quantityInput.closest('.item');
+            const price = parseFloat(itemElement.getAttribute('data-price'));
+            const quantity = parseInt(quantityInput.value) || 0;
+            
+            // Calculate subtotal for this item
+            const subtotal = price * quantity;
+            
+            // Update the subtotal display
+            const subtotalElement = itemElement.querySelector('.subtotal');
+            subtotalElement.textContent = '$' + subtotal.toFixed(2);
+            
+            // Update the order total
+            updateOrderTotal();
+        }
+        
+        // Function to calculate and update total order amount
+        function updateOrderTotal() {
+            let total = 0;
+            
+            // Get all subtotals and add them up
+            document.querySelectorAll('.item').forEach(item => {
+                const subtotalElement = item.querySelector('.subtotal');
+                if (subtotalElement) {
+                    // Remove $ and convert to number
+                    const subtotal = parseFloat(subtotalElement.textContent.replace('$', '')) || 0;
+                    total += subtotal;
+                }
+            });
+            
+            // Update the order total display
+            document.getElementById('orderTotal').textContent = '$' + total.toFixed(2);
+        }
+        
+        // Add event listeners to all quantity inputs
+        document.addEventListener('DOMContentLoaded', function() {
+            const quantityInputs = document.querySelectorAll('.quantity');
+            
+            quantityInputs.forEach(input => {
+                // Initialize subtotals
+                updateSubtotal(input);
+                
+                // Add event listener for changes
+                input.addEventListener('input', function() {
+                    updateSubtotal(this);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

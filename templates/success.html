@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Successful - Invoice</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .invoice-container {
+            max-width: 800px;
+            margin: 2em auto;
+            background: white;
+            padding: 2em;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+        
+        .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 1.5em;
+            margin-bottom: 2em;
+        }
+        
+        .invoice-title {
+            color: #27ae60;
+        }
+        
+        .invoice-title h1 {
+            margin-bottom: 0.3em;
+        }
+        
+        .invoice-details {
+            text-align: right;
+        }
+        
+        .invoice-id {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+        
+        .invoice-date {
+            color: #7f8c8d;
+            margin-top: 0.5em;
+        }
+        
+        .section {
+            margin-bottom: 2em;
+            padding-bottom: 1em;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .section:last-child {
+            border-bottom: none;
+        }
+        
+        .section-title {
+            color: #2c3e50;
+            margin-bottom: 1em;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5em;
+        }
+        
+        .info-item {
+            margin-bottom: 0.5em;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #34495e;
+            margin-bottom: 0.3em;
+        }
+        
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .items-table th, 
+        .items-table td {
+            padding: 0.8em;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .items-table th {
+            background-color: #f8f9fa;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        
+        .items-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .total-row {
+            font-weight: bold;
+            background-color: #f9f9f9;
+        }
+        
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 1em;
+            margin-top: 2em;
+        }
+        
+        .btn {
+            padding: 0.8em 1.5em;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 1em;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-print {
+            background-color: #3498db;
+        }
+        
+        .btn:hover {
+            background-color: #34495e;
+        }
+        
+        @media print {
+            .actions {
+                display: none;
+            }
+            
+            body {
+                padding: 0;
+                margin: 0;
+            }
+            
+            .invoice-container {
+                box-shadow: none;
+                margin: 0;
+                padding: 1em;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        <div class="invoice-header">
+            <div class="invoice-title">
+                <h1>Order Successful</h1>
+                <p>Thank you for your order!</p>
+            </div>
+            <div class="invoice-details">
+                <div class="invoice-id">Invoice #: {{ order_id }}</div>
+                <div class="invoice-date">Date: {{ order.created_at }}</div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">Topic Information</div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Topic Name</div>
+                    <div>{{ topic.name }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Description</div>
+                    <div>{{ topic.description }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">Customer Information</div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Name</div>
+                    <div>{{ order.name }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Division</div>
+                    <div>{{ order.division }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Email</div>
+                    <div>{{ order.email }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Phone</div>
+                    <div>{{ order.phone }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">Order Details</div>
+            
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Price</th>
+                        <th>Quantity</th>
+                        <th class="text-right">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if order and 'items' in order and order['items'] is iterable %}
+                        {% for item in order['items'] %}
+                        <tr>
+                            <td>{{ item.name }}</td>
+                            <td>${{ "%.2f"|format(item.price) }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td class="text-right">${{ "%.2f"|format(item.subtotal) }}</td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="total-row">
+                            <td colspan="3" class="text-right">Total:</td>
+                            <td class="text-right">${{ "%.2f"|format(order.total) }}</td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="4" style="text-align: center;">No items available</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="actions">
+            <button class="btn btn-print" onclick="window.print()">Print Invoice</button>
+        </div>
+    </div>
+    
+    <script>
+        // Auto print if URL parameter contains print=true
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.location.search.includes('print=true')) {
+                window.print();
+            }
+        });
+    </script>
+</body>
+</html>

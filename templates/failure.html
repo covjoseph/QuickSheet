@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Failed</title>
+    <!-- Link to CSS in static folder -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="status-page">
+    <div class="container">
+        <h1 class="failure">Order Submission Failed</h1>
+        <p>Unfortunately, there was a problem submitting your order.</p>
+        <p>Details:</p>
+        <p class="error-details">{{ error_message }}</p>
+    </div>
+</body>
+</html>
