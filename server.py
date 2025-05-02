@@ -1,10 +1,12 @@
-from flask import Flask, request, jsonify, send_from_directory, session, redirect, url_for, render_template, flash
+from flask import Flask, request, jsonify, send_from_directory, session, redirect, url_for, render_template, flash, Response
 import json
 import uuid
 import datetime
 import os
 import secrets
 import config  # Import the new config file
+import csv
+import io
 
 app = Flask(__name__)
 # Apply configuration from config.py
@@ -82,37 +84,28 @@ def save_orders_data(data):
 def load_topics_data():
     try:
         with open(os.path.join(DATA_DIR, config.DATA['topics_file']), 'r') as file:
-            print("DEBUG: Loading topics.json file")
-            
-            # Capture file content for logging
             file_content = file.read()
-            print(f"DEBUG: topics.json raw content length: {len(file_content)}")
-            print(f"DEBUG: topics.json first 100 chars: {file_content[:100] if file_content else 'EMPTY'}")
-            
-            # Attempt to parse JSON
             if not file_content.strip():
-                print("DEBUG: topics.json is empty")
                 return {}
-                
             data = json.loads(file_content)
-            
-            print(f"DEBUG: topics.json parsed successfully: {type(data)}")
-            print(f"DEBUG: topics.json contains {len(data)} topics: {list(data.keys())}")
-            
-            if isinstance(data, dict):
-                return data
-            else:
-                print(f"DEBUG WARNING: topics.json has unexpected format: {type(data)}. Starting fresh.")
-                return {}
+            # Normalize old state values
+            changed = False
+            for topic in data.values():
+                st = topic.get('state')
+                if st == 'draft':
+                    topic['state'] = 'unlocked'
+                    changed = True
+                elif st == 'launched':
+                    topic['state'] = 'locked'
+                    changed = True
+            if changed:
+                save_topics_data(data)
+            return data
     except FileNotFoundError:
-        print("DEBUG: topics.json file not found, creating new empty dictionary")
         return {}
-    except json.JSONDecodeError as e:
-        print(f"DEBUG ERROR: topics.json JSON decode error: {str(e)}")
-        print("DEBUG: topics.json is corrupted or empty. Starting fresh.")
+    except json.JSONDecodeError:
         return {}
-    except Exception as e:
-        print(f"DEBUG CRITICAL ERROR loading topics.json: {str(e)}")
+    except Exception:
         return {}
 
 def save_topics_data(data):
@@ -226,7 +219,7 @@ def create_topic():
         # Generate topic ID
         topic_id = str(uuid.uuid4())
         
-        # Create new topic - default state is "draft"
+        # Create new topic - default state is "unlocked"
         topics_data[topic_id] = {
             'name': topic_name,
             'description': topic_description,
@@ -234,7 +227,7 @@ def create_topic():
             'created_at': datetime.datetime.now().isoformat(),
             'topic_date': topic_date,
             'id': topic_id,
-            'state': 'draft'  # Default state is draft
+            'state': 'unlocked'  # Default state is unlocked (editable)
         }
         
         save_topics_data(topics_data)
@@ -281,7 +274,7 @@ def get_admin_data():
                 "id": topic_id,
                 "items": topic_info.get("items", []),  # Include items in the meta data
                 "topic_date": topic_info.get("topic_date", ""),  # Include topic date
-                "state": topic_info.get("state", "draft")  # Include topic state, default to draft
+                "state": topic_info.get("state", "unlocked")  # Include topic state, default to unlocked
             }
             
             # Get orders for this topic ID from orders.json
@@ -769,10 +762,10 @@ def update_topic():
         if not found:
             return jsonify({"success": False, "error": "Original topic not found"}), 404
         
-        # Check if topic is in launched state and reject edits
+        # Check if topic is in locked state and reject edits
         # We don't check for this if the request is specifically to change the state
-        if topics_data[topic_id].get('state') == 'launched' and not topic_data.get('stateChange'):
-            return jsonify({"success": False, "error": "Cannot edit a launched topic. Unlaunch the topic first."}), 400
+        if topics_data[topic_id].get('state') == 'locked' and not topic_data.get('stateChange'):
+            return jsonify({"success": False, "error": "Cannot edit a locked topic. Unlock the topic first."}), 400
             
         # Check if new name already exists (only if name is changing)
         if topic_name != original_topic_name:
@@ -793,10 +786,10 @@ def update_topic():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-@app.route('/launch-topic', methods=['POST'])
+@app.route('/lock-topic', methods=['POST'])
 @admin_login_required
-def launch_topic():
-    """Change a topic's state to 'launched'"""
+def lock_topic():
+    """Change a topic's state to 'locked'"""
     try:
         # Get topic data from request
         data = request.json
@@ -813,21 +806,21 @@ def launch_topic():
             return jsonify({"success": False, "error": "Topic not found"}), 404
             
         # Update topic state
-        topics_data[topic_id]['state'] = 'launched'
+        topics_data[topic_id]['state'] = 'locked'
         
         # Save topic data
         save_topics_data(topics_data)
         
-        return jsonify({"success": True, "message": "Topic launched successfully"}), 200
+        return jsonify({"success": True, "message": "Topic locked successfully"}), 200
         
     except Exception as e:
-        print(f"Error launching topic: {str(e)}")
+        print(f"Error locking topic: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
-@app.route('/unlaunch-topic', methods=['POST'])
+@app.route('/unlock-topic', methods=['POST'])
 @admin_login_required
-def unlaunch_topic():
-    """Change a topic's state back to 'draft'"""
+def unlock_topic():
+    """Change a topic's state back to 'unlocked'"""
     try:
         # Get topic data from request
         data = request.json
@@ -844,15 +837,128 @@ def unlaunch_topic():
             return jsonify({"success": False, "error": "Topic not found"}), 404
             
         # Update topic state
-        topics_data[topic_id]['state'] = 'draft'
+        topics_data[topic_id]['state'] = 'unlocked'
         
         # Save topic data
         save_topics_data(topics_data)
         
-        return jsonify({"success": True, "message": "Topic unlaunched successfully"}), 200
+        return jsonify({"success": True, "message": "Topic unlocked successfully"}), 200
         
     except Exception as e:
-        print(f"Error unlaunching topic: {str(e)}")
+        print(f"Error unlocking topic: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/export-topic-orders/<topic_id>', methods=['GET'])
+@admin_login_required
+def export_topic_orders(topic_id):
+    """Export orders for a specific topic in CSV format with items in columns"""
+    try:
+        # Load orders data
+        orders_data = load_orders_data()
+        topics_data = load_topics_data()
+        
+        # Check if topic exists
+        if topic_id not in topics_data:
+            return jsonify({"success": False, "error": "Topic not found"}), 404
+            
+        topic_name = topics_data[topic_id].get('name', 'Unknown Topic')
+        orders = orders_data.get(topic_id, [])
+        
+        if not orders:
+            return jsonify({"success": False, "error": "No orders found for this topic"}), 404
+        
+        # Find the maximum number of items in any order
+        max_items = 0
+        for order in orders:
+            items_count = len(order.get('items', []))
+            if items_count > max_items:
+                max_items = items_count
+                
+        # Create CSV
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Create headers for the basic order fields
+        headers = [
+            'Order ID',
+            'Created Date',
+            'Topic',
+            'Division',
+            'Customer Name',
+            'Email',
+            'Phone',
+            'Order Status',
+        ]
+        
+        # Add headers for each item (item1_name, item1_price, etc.)
+        for i in range(1, max_items + 1):
+            headers.extend([
+                f'Item{i} Name',
+                f'Item{i} Price',
+                f'Item{i} Quantity',
+                f'Item{i} Subtotal'
+            ])
+            
+        # Add the order total at the end
+        headers.append('Order Total')
+        
+        # Write the header row
+        writer.writerow(headers)
+        
+        # Write data rows
+        for order in orders:
+            order_id = order.get('id', 'N/A')
+            created_at = order.get('created_at', 'N/A')
+            customer_name = order.get('name', 'N/A')
+            division = order.get('division', 'N/A')
+            email = order.get('email', 'N/A')
+            phone = order.get('phone', 'N/A')
+            status = order.get('status', 'pending')
+            total = order.get('total', 0)
+            
+            # Start with the basic order information
+            row_data = [
+                order_id,
+                created_at,
+                topic_name,
+                division,
+                customer_name,
+                email,
+                phone,
+                status,
+            ]
+            
+            # Add item details in columns
+            items = order.get('items', [])
+            for i in range(max_items):
+                if i < len(items):
+                    item = items[i]
+                    row_data.extend([
+                        item.get('name', 'N/A'),
+                        f"{item.get('price', 0):.2f}",
+                        item.get('quantity', 0),
+                        f"{item.get('subtotal', 0):.2f}"
+                    ])
+                else:
+                    # Fill empty item slots
+                    row_data.extend(['', '', '', ''])
+            
+            # Add order total at the end
+            row_data.append(f"{total:.2f}")
+            
+            # Write the complete row
+            writer.writerow(row_data)
+        
+        # Prepare response
+        output.seek(0)
+        return Response(
+            output.getvalue(),
+            mimetype="text/csv",
+            headers={"Content-disposition": f"attachment; filename={topic_name}_orders.csv"}
+        )
+            
+    except Exception as e:
+        print(f"Error exporting orders: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 if __name__ == '__main__':

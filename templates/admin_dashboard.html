@@ -11,22 +11,18 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: Arial, sans-serif !important;
             margin: 0;
             padding: 0;
             background-color: #f5f5f5;
             color: #333;
+            line-height: 1.6;
+            font-size: 16px;
         }
         header {
             background-color: #2c3e50;
             color: white;
             padding: 1em;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1, h2, h3 {
             margin: 0;
         }
         .logout-btn {
@@ -182,11 +178,11 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
-        .state-draft {
+        .state-unlocked {
             background-color: #95a5a6;
             color: white;
         }
-        .state-launched {
+        .state-locked {
             background-color: #27ae60;
             color: white;
         }
@@ -235,6 +231,14 @@
             color: white;
             padding: 0.8em 1.2em;
             margin-bottom: 1.5em;
+        }
+        .btn-launch {
+            background-color: #8e44ad;
+            color: white;
+        }
+        .btn-unlaunch {
+            background-color: #3498db;
+            color: white;
         }
         .btn:hover {
             opacity: 0.9;
@@ -505,23 +509,175 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
+
+        .topic-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        /* Export button styles */
+        .btn-export {
+            background-color: #3498db;
+            color: white;
+            border-radius: 4px;
+            padding: 0.4em 0.8em;
+            font-size: 0.9em;
+            margin-left: 8px;
+        }
+        .export-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .export-dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            border-radius: 4px;
+            right: 0;
+        }
+        .export-dropdown-content a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            font-size: 0.9em;
+        }
+        .export-dropdown-content a:hover {
+            background-color: #f1f1f1;
+            border-radius: 4px;
+        }
+        .export-dropdown:hover .export-dropdown-content {
+            display: block;
+        }
+
+        /* Status dropdown styles */
+        .status-cell {
+            position: relative;
+        }
+        .status-dropdown {
+            cursor: pointer;
+            position: relative;
+            display: inline-block;
+        }
+        .status-dropdown-content {
+            display: none; /* Hidden by default */
+            position: absolute;
+            background-color: white;
+            min-width: 120px;
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.2);
+            z-index: 10;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 5px;
+            left: 0;
+        }
+        /* We'll control this through JavaScript instead of hover */
+        .status-dropdown-content.show {
+            display: block;
+        }
+        .status-option {
+            padding: 10px 15px;
+            display: block;
+            color: #333;
+            text-decoration: none;
+            transition: all 0.2s;
+            font-weight: normal;
+            font-size: 0.9em;
+            letter-spacing: 0.5px;
+        }
+        .status-option.active {
+            font-weight: bold;
+            background-color: #f8f9fa;
+        }
+        .status-option:hover {
+            background-color: #f0f2f5;
+        }
+        .status-option[data-status="pending"]:hover {
+            background-color: rgba(243, 156, 18, 0.1);
+        }
+        .status-option[data-status="completed"]:hover {
+            background-color: rgba(46, 204, 113, 0.1);
+        }
+        .status-option[data-status="cancelled"]:hover {
+            background-color: rgba(231, 76, 60, 0.1);
+        }
+
+        /* State dropdown styles - similar to status dropdown */
+        .state-cell {
+            position: relative;
+        }
+        .state-dropdown {
+            cursor: pointer;
+            position: relative;
+            display: inline-block;
+        }
+        .state-dropdown-content {
+            display: none; /* Hidden by default */
+            position: absolute;
+            background-color: white;
+            min-width: 120px;
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.2);
+            z-index: 10;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 5px;
+            left: 0;
+        }
+        .state-dropdown-content.show {
+            display: block;
+        }
+        .state-option {
+            padding: 10px 15px;
+            display: block;
+            color: #333;
+            text-decoration: none;
+            transition: all 0.2s;
+            font-weight: normal;
+            font-size: 0.9em;
+            letter-spacing: 0.5px;
+        }
+        .state-option.active {
+            font-weight: bold;
+            background-color: #f8f9fa;
+        }
+        .state-option:hover {
+            background-color: #f0f2f5;
+        }
+        .state-option[data-state="unlocked"]:hover {
+            background-color: rgba(149, 165, 166, 0.1);
+        }
+        .state-option[data-state="locked"]:hover {
+            background-color: rgba(39, 174, 96, 0.1);
+        }
     </style>
 </head>
 <body>
     <header>
-        <h1>Admin Dashboard</h1>
-        <button class="logout-btn" id="logoutBtn">Logout</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <h1>Admin Dashboard</h1>
+            <button class="logout-btn" id="logoutBtn">Logout</button>
+        </div>
     </header>
 
     <div class="container">
         <div class="tabs">
-            <div class="tab" data-tab="topics">Topics</div>
-            <div class="tab active" data-tab="orders">Orders</div>
         </div>
 
         <div class="tab-content active" id="orders-tab">
             <div class="topics-container" id="topicsContainer">
                 <!-- Topic tabs will be dynamically added here -->
+            </div>
+
+            <div class="orders-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2 id="ordersHeading">All Orders</h2>
+                <button id="exportOrdersBtn" class="btn btn-export" style="display: flex; align-items: center; gap: 0.5em;">
+                    <i class="fas fa-download"></i> Export Orders
+                </button>
             </div>
 
             <div class="orders-container">
@@ -548,8 +704,10 @@
 
         <div class="tab-content" id="topics-tab">
             <div class="topic-management-container">
-                <h2>Manage Topics</h2>
-                <button class="btn btn-add" id="addTopicBtn">Add New Topic</button>
+                <div class="topic-header">
+                    <h2>Manage Topics</h2>
+                    <button class="btn btn-add" id="addTopicBtn">Add New Topic</button>
+                </div>
                 
                 <table class="topic-list" id="topicListTable">
                     <thead>
@@ -1001,6 +1159,7 @@
                         topicTab.classList.add('active');
                         currentTopic = topic;
                         displayOrders(topic);
+                        updateOrdersHeading(topic);
                     });
                     topicsContainer.appendChild(topicTab);
                 });
@@ -1027,13 +1186,13 @@
             let allOrders = [];
             
             // Collect orders from all topics with topic name
-            topics.forEach(topicName => {
-                const orders = allOrdersData[topicName] || [];
+            topics.forEach(topic => {
+                const orders = allOrdersData[topic] || [];
                 if (orders.length > 0) {
                     // Add topic name to each order for display
                     const ordersWithTopic = orders.map(order => ({
                         ...order,
-                        _topicName: topicName // Add topic name as a property
+                        _topicName: topic // Add topic name as a property
                     }));
                     
                     allOrders = [...allOrders, ...ordersWithTopic];
@@ -1064,17 +1223,31 @@
                 const customerDivision = order.division || 'N/A';
                 const totalAmount = typeof order.total === 'number' ? `$${order.total.toFixed(2)}` : 'N/A';
                 const topicName = order._topicName || 'Unknown';
+                
+                // Determine if actions should be enabled based on order status
+                const isActionable = status === 'pending'; // Only pending orders can be edited or deleted
 
                 row.innerHTML = `
                     <td>${topicName}</td>
                     <td>${customerDivision}</td>
                     <td>${customerName}</td>
                     <td>${totalAmount}</td>
-                    <td><span class="status-badge status-${status.toLowerCase()}">${status}</span></td>
+                    <td class="status-cell">
+                        <div class="status-dropdown">
+                            <span class="status-badge status-${status.toLowerCase()}">${status}</span>
+                            <div class="status-dropdown-content">
+                                <a href="#" class="status-option ${status === 'pending' ? 'active' : ''}" data-id="${order.id}" data-status="pending">Pending</a>
+                                <a href="#" class="status-option ${status === 'completed' ? 'active' : ''}" data-id="${order.id}" data-status="completed">Completed</a>
+                                <a href="#" class="status-option ${status === 'cancelled' ? 'active' : ''}" data-id="${order.id}" data-status="cancelled">Cancelled</a>
+                            </div>
+                        </div>
+                    </td>
                     <td class="action-buttons">
                         <button class="btn btn-icon btn-view" data-id="${order.id}" title="View Order"><i class="fas fa-eye"></i></button>
-                        <button class="btn btn-icon btn-edit" data-id="${order.id}" title="Edit Order"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-icon btn-delete" data-id="${order.id}" title="Delete Order"><i class="fas fa-trash-alt"></i></button>
+                        ${isActionable ? `<button class="btn btn-icon btn-edit" data-id="${order.id}" title="Edit Order"><i class="fas fa-edit"></i></button>` : 
+                                        `<button class="btn btn-icon" style="visibility: hidden;"><i class="fas fa-edit"></i></button>`}
+                        ${isActionable ? `<button class="btn btn-icon btn-delete" data-id="${order.id}" title="Delete Order"><i class="fas fa-trash-alt"></i></button>` : 
+                                        `<button class="btn btn-icon" style="visibility: hidden;"><i class="fas fa-trash-alt"></i></button>`}
                     </td>
                 `;
 
@@ -1089,7 +1262,81 @@
             });
             
             addOrderActionListeners();
+            updateOrdersHeading('all');
             console.log(`Displayed ${allOrders.length} orders from all topics.`);
+        }
+
+        // Display orders for a specific topic
+        function displayOrders(topicName) {
+            console.log(`Displaying orders for topic: ${topicName}`);
+            
+            // Clear the table
+            ordersTableBody.innerHTML = '';
+            
+            const orders = allOrdersData[topicName] || [];
+            
+            if (orders.length === 0) {
+                noOrders.style.display = 'block';
+                noOrders.textContent = 'No orders found for this topic.';
+                return;
+            }
+            
+            noOrders.style.display = 'none';
+            
+            // Sort orders by date (newest first)
+            orders.sort((a, b) => {
+                const dateA = new Date(a.created_at || 0);
+                const dateB = new Date(b.created_at || 0);
+                return dateB - dateA;
+            });
+            
+            // Display orders
+            orders.forEach(order => {
+                const row = document.createElement('tr');
+                const status = order.status || "pending";
+                const customerName = order.name || 'N/A';
+                const customerDivision = order.division || 'N/A';
+                const totalAmount = typeof order.total === 'number' ? `$${order.total.toFixed(2)}` : 'N/A';
+                
+                // Determine if actions should be enabled based on order status
+                const isActionable = status === 'pending'; // Only pending orders can be edited or deleted
+
+                row.innerHTML = `
+                    <td>${topicName}</td>
+                    <td>${customerDivision}</td>
+                    <td>${customerName}</td>
+                    <td>${totalAmount}</td>
+                    <td class="status-cell">
+                        <div class="status-dropdown">
+                            <span class="status-badge status-${status.toLowerCase()}">${status}</span>
+                            <div class="status-dropdown-content">
+                                <a href="#" class="status-option ${status === 'pending' ? 'active' : ''}" data-id="${order.id}" data-status="pending">Pending</a>
+                                <a href="#" class="status-option ${status === 'completed' ? 'active' : ''}" data-id="${order.id}" data-status="completed">Completed</a>
+                                <a href="#" class="status-option ${status === 'cancelled' ? 'active' : ''}" data-id="${order.id}" data-status="cancelled">Cancelled</a>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="action-buttons">
+                        <button class="btn btn-icon btn-view" data-id="${order.id}" title="View Order"><i class="fas fa-eye"></i></button>
+                        ${isActionable ? `<button class="btn btn-icon btn-edit" data-id="${order.id}" title="Edit Order"><i class="fas fa-edit"></i></button>` : 
+                                        `<button class="btn btn-icon" style="visibility: hidden;"><i class="fas fa-edit"></i></button>`}
+                        ${isActionable ? `<button class="btn btn-icon btn-delete" data-id="${order.id}" title="Delete Order"><i class="fas fa-trash-alt"></i></button>` : 
+                                        `<button class="btn btn-icon" style="visibility: hidden;"><i class="fas fa-trash-alt"></i></button>`}
+                    </td>
+                `;
+                
+                // Add data attributes for sorting
+                row.dataset.topic = topicName;
+                row.dataset.division = customerDivision;
+                row.dataset.name = customerName;
+                row.dataset.total = order.total || 0;
+                row.dataset.status = status;
+                
+                ordersTableBody.appendChild(row);
+            });
+            
+            addOrderActionListeners();
+            console.log(`Displayed ${orders.length} orders for topic: ${topicName}`);
         }
 
         // Load topic list for topic management
@@ -1104,13 +1351,18 @@
                     const topicName = key.substring(0, key.length - 5);
                     const metaData = allOrdersData[key];
                     const orders = allOrdersData[topicName] || [];
-                    
+
+                    // Normalize state: map old values to new
+                    const rawState = metaData.state || 'unlocked';
+                    const state = rawState === 'launched' ? 'locked'
+                                : rawState === 'draft'   ? 'unlocked'
+                                : rawState;
+
                     topics.push({
                         name: topicName,
                         description: metaData.description || '',
-                        state: metaData.state || 'draft',
+                        state: state,
                         orders: orders.length,
-                        createdAt: metaData.created_at || '',
                         topicDate: metaData.topic_date || '',
                         id: metaData.id || ''
                     });
@@ -1136,26 +1388,178 @@
                     }
                 }
                 
-                // Determine if delete button should be shown based on whether there are orders
+                // Determine if buttons should be shown
                 const hasOrders = topic.orders > 0;
-                const deleteButton = hasOrders ? 
-                    '' : 
-                    `<button class="btn btn-icon btn-delete" onclick="deleteTopic('${topic.name}', ${hasOrders})" title="Delete Topic"><i class="fas fa-trash-alt"></i></button>`;
+                
+                // Create action buttons based on state and orders
+                const placeOrderButton = `<button class="btn btn-icon btn-green" onclick="window.open('/order/${topic.id}', '_blank')" title="Place Order"><i class="fas fa-cart-plus"></i></button>`;
+                
+                const editButton = (topic.state === 'unlocked')
+                    ? `<button class="btn btn-icon btn-edit" onclick="editTopic('${topic.name}')" title="Edit Topic"><i class="fas fa-edit"></i></button>`
+                    : `<button class="btn btn-icon" style="visibility: hidden;"><i class="fas fa-edit"></i></button>`;
+                    
+                const deleteButton = (!hasOrders && topic.state === 'unlocked')
+                    ? `<button class="btn btn-icon btn-delete" onclick="deleteTopic('${topic.name}', ${hasOrders})" title="Delete Topic"><i class="fas fa-trash-alt"></i></button>`
+                    : `<button class="btn btn-icon" style="visibility: hidden;"><i class="fas fa-trash-alt"></i></button>`;
+                
+                // Export button (only show if topic has orders)
+                const exportButton = hasOrders 
+                    ? `<button class="btn btn-icon btn-export" onclick="window.location='/export-topic-orders/${topic.id}'" title="Export as CSV"><i class="fas fa-download"></i></button>`
+                    : `<button class="btn btn-icon" style="visibility: hidden;"><i class="fas fa-file-csv"></i></button>`;
                 
                 row.innerHTML = `
                     <td>${topic.name}</td>
                     <td>${topic.description}</td>
-                    <td><span class="state-badge state-${topic.state}">${topic.state}</span></td>
+                    <td class="state-cell">
+                        <div class="state-dropdown">
+                            <span class="state-badge state-${topic.state}">${topic.state.charAt(0).toUpperCase() + topic.state.slice(1)}</span>
+                            <div class="state-dropdown-content">
+                                <a href="#" class="state-option ${topic.state === 'unlocked' ? 'active' : ''}" data-id="${topic.id}" data-state="unlocked">Unlocked</a>
+                                <a href="#" class="state-option ${topic.state === 'locked' ? 'active' : ''}" data-id="${topic.id}" data-state="locked">Locked</a>
+                            </div>
+                        </div>
+                    </td>
                     <td>${topic.orders}</td>
                     <td>${topicDateDisplay}</td>
                     <td class="action-buttons">
-                        <button class="btn btn-icon btn-green" onclick="window.open('/order/${topic.id}', '_blank')" title="Place Order"><i class="fas fa-cart-plus"></i></button>
-                        <button class="btn btn-icon btn-edit" onclick="editTopic('${topic.name}')" title="Edit Topic"><i class="fas fa-edit"></i></button>
+                        ${placeOrderButton}
+                        ${editButton}
                         ${deleteButton}
+                        ${exportButton}
                     </td>
                 `;
                 
+                // Make the topic name clickable to show its orders
+                const topicNameCell = row.querySelector('td:first-child');
+                topicNameCell.style.cursor = 'pointer';
+                topicNameCell.style.color = '#3498db';
+                topicNameCell.style.fontWeight = 'bold';
+                topicNameCell.addEventListener('click', function() {
+                    // Switch to the orders tab and display orders for this topic
+                    const ordersTab = document.querySelector('.tab[data-tab="orders"]');
+                    setActiveTab('orders');
+                    currentTopic = topic.name;
+                    displayOrders(topic.name);
+                    updateOrdersHeading(topic.name);
+                    
+                    // Find and activate the topic tab
+                    const topicTabs = document.querySelectorAll('.topic-tab');
+                    topicTabs.forEach(tab => {
+                        if (tab.dataset.topic === topic.name) {
+                            document.querySelectorAll('.topic-tab').forEach(t => t.classList.remove('active'));
+                            tab.classList.add('active');
+                        }
+                    });
+                });
+                
                 topicsList.appendChild(row);
+            });
+
+            // Add listeners to state dropdown options
+            document.querySelectorAll('.state-option').forEach(option => {
+                option.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    e.stopPropagation(); // Prevent the event from bubbling to the document
+                    const topicId = this.dataset.id;
+                    const newState = this.dataset.state;
+
+                    try {
+                        const endpoint = newState === 'locked' ? '/lock-topic' : '/unlock-topic';
+                        const response = await fetch(endpoint, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ topic_id: topicId })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Failed to update topic state');
+                        }
+
+                        // Update the UI
+                        const stateCell = this.closest('.state-cell');
+                        const stateBadge = stateCell.querySelector('.state-badge');
+
+                        // Update badge class and text
+                        stateBadge.className = `state-badge state-${newState}`;
+                        stateBadge.textContent = newState.charAt(0).toUpperCase() + newState.slice(1);
+
+                        // Update active class in dropdown
+                        stateCell.querySelectorAll('.state-option').forEach(opt => {
+                            opt.classList.remove('active');
+                        });
+                        this.classList.add('active');
+
+                        // Hide the dropdown after selection
+                        const dropdownContent = this.closest('.state-dropdown-content');
+                        dropdownContent.classList.remove('show');
+
+                        // Update action buttons based on the new state
+                        const row = stateCell.closest('tr');
+                        
+                        // Get the topic name, hasOrders flag, and topic id
+                        const topicName = row.querySelector('td:first-child').textContent;
+                        const ordersCell = row.querySelector('td:nth-child(4)'); // 4th column is orders
+                        const hasOrders = parseInt(ordersCell.textContent) > 0;
+                        
+                        // Get the actions cell
+                        const actionsCell = row.querySelector('.action-buttons');
+                        
+                        // Rebuild the action buttons based on new state
+                        // Create action buttons based on state and orders
+                        const placeOrderButton = `<button class="btn btn-icon btn-green" onclick="window.open('/order/${topicId}', '_blank')" title="Place Order"><i class="fas fa-cart-plus"></i></button>`;
+                        
+                        const editButton = (newState === 'unlocked')
+                            ? `<button class="btn btn-icon btn-edit" onclick="editTopic('${topicName}')" title="Edit Topic"><i class="fas fa-edit"></i></button>`
+                            : `<button class="btn btn-icon" style="visibility: hidden;"><i class="fas fa-edit"></i></button>`;
+                            
+                        const deleteButton = (!hasOrders && newState === 'unlocked')
+                            ? `<button class="btn btn-icon btn-delete" onclick="deleteTopic('${topicName}', ${hasOrders})" title="Delete Topic"><i class="fas fa-trash-alt"></i></button>`
+                            : `<button class="btn btn-icon" style="visibility: hidden;"><i class="fas fa-trash-alt"></i></button>`;
+                        
+                        // Export button (only show if topic has orders)
+                        const exportButton = hasOrders 
+                            ? `<button class="btn btn-icon btn-export" onclick="window.location='/export-topic-orders/${topicId}'" title="Export as CSV"><i class="fas fa-download"></i></button>`
+                            : `<button class="btn btn-icon" style="visibility: hidden;"><i class="fas fa-file-csv"></i></button>`;
+                        
+                        // Update the actions cell with the new buttons
+                        actionsCell.innerHTML = `
+                            ${placeOrderButton}
+                            ${editButton}
+                            ${deleteButton}
+                            ${exportButton}
+                        `;
+
+                    } catch (error) {
+                        console.error('Error updating topic state:', error);
+                        alert('Failed to update topic state. Please try again.');
+                    }
+                });
+            });
+
+            // Add event listeners for toggle dropdown on state badge click
+            document.querySelectorAll('.state-badge').forEach(badge => {
+                badge.addEventListener('click', function(e) {
+                    e.stopPropagation();
+
+                    // Close all other open dropdowns first
+                    document.querySelectorAll('.state-dropdown-content.show').forEach(openDropdown => {
+                        // Don't close the one we're about to toggle
+                        if (openDropdown !== this.nextElementSibling) {
+                            openDropdown.classList.remove('show');
+                        }
+                    });
+
+                    // Toggle this dropdown
+                    const dropdownContent = this.nextElementSibling;
+                    dropdownContent.classList.toggle('show');
+                });
+            });
+
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.state-dropdown-content').forEach(content => {
+                    content.classList.remove('show');
+                });
             });
         }
 
@@ -1247,111 +1651,6 @@
             confirmDeleteModal.style.display = 'flex';
         }
 
-        // Display orders for a specific topic
-        function displayOrders(topicName) {
-            console.log(`Displaying orders for topic: ${topicName}`);
-            const orders = allOrdersData[topicName] || [];
-
-            ordersTableBody.innerHTML = '';
-
-            if (orders.length === 0) {
-                noOrders.style.display = 'block';
-                noOrders.textContent = `No orders found for topic: "${topicName}".`;
-                return;
-            }
-
-            noOrders.style.display = 'none';
-
-            orders.forEach(order => {
-                const row = document.createElement('tr');
-                const status = order.status || "pending";
-                const customerName = order.name || 'N/A';
-                const customerDivision = order.division || 'N/A';
-                const totalAmount = typeof order.total === 'number' ? `$${order.total.toFixed(2)}` : 'N/A';
-
-                row.innerHTML = `
-                    <td>${topicName}</td>
-                    <td>${customerDivision}</td>
-                    <td>${customerName}</td>
-                    <td>${totalAmount}</td>
-                    <td><span class="status-badge status-${status.toLowerCase()}">${status}</span></td>
-                    <td class="action-buttons">
-                        <button class="btn btn-icon btn-view" data-id="${order.id}" title="View Order"><i class="fas fa-eye"></i></button>
-                        <button class="btn btn-icon btn-edit" data-id="${order.id}" title="Edit Order"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-icon btn-delete" data-id="${order.id}" title="Delete Order"><i class="fas fa-trash-alt"></i></button>
-                    </td>
-                `;
-
-                // Add data attributes for sorting
-                row.dataset.topic = topicName;
-                row.dataset.division = customerDivision;
-                row.dataset.name = customerName;
-                row.dataset.total = order.total || 0;
-                row.dataset.status = status;
-
-                ordersTableBody.appendChild(row);
-            });
-
-            addOrderActionListeners();
-            console.log(`Displayed ${orders.length} orders.`);
-        }
-
-        // Sort orders in the table
-        function sortOrdersTable(column, direction) {
-            const rows = Array.from(ordersTableBody.querySelectorAll('tr'));
-            
-            // Sort the rows based on the data attributes
-            rows.sort((a, b) => {
-                let valueA = a.dataset[column];
-                let valueB = b.dataset[column];
-                
-                // For numeric columns
-                if (column === 'total') {
-                    valueA = parseFloat(valueA) || 0;
-                    valueB = parseFloat(valueB) || 0;
-                    return direction === 'asc' ? valueA - valueB : valueB - valueA;
-                }
-                
-                // For text columns
-                valueA = valueA.toLowerCase();
-                valueB = valueB.toLowerCase();
-                
-                if (valueA < valueB) return direction === 'asc' ? -1 : 1;
-                if (valueA > valueB) return direction === 'asc' ? 1 : -1;
-                return 0;
-            });
-            
-            // Reorder the rows in the table
-            rows.forEach(row => ordersTableBody.appendChild(row));
-        }
-
-        // Add event listeners to sortable table headers
-        document.querySelectorAll('.sortable').forEach(th => {
-            th.addEventListener('click', () => {
-                const column = th.dataset.sort;
-                let direction = 'asc';
-                
-                // Toggle sort direction if already sorted
-                if (th.classList.contains('sort-asc')) {
-                    direction = 'desc';
-                    th.classList.remove('sort-asc');
-                    th.classList.add('sort-desc');
-                } else if (th.classList.contains('sort-desc')) {
-                    direction = 'asc';
-                    th.classList.remove('sort-desc');
-                    th.classList.add('sort-asc');
-                } else {
-                    // Remove sorting from other columns
-                    document.querySelectorAll('.sortable').forEach(header => {
-                        header.classList.remove('sort-asc', 'sort-desc');
-                    });
-                    th.classList.add('sort-asc');
-                }
-                
-                sortOrdersTable(column, direction);
-            });
-        });
-
         // Helper function to add listeners to order action buttons
         function addOrderActionListeners() {
             document.querySelectorAll('#ordersTableBody .btn-view').forEach(btn => {
@@ -1370,6 +1669,124 @@
                 const newBtn = btn.cloneNode(true);
                 btn.parentNode.replaceChild(newBtn, btn);
                 newBtn.addEventListener('click', () => deleteOrder(newBtn.dataset.id));
+            });
+            
+            // Add listeners to status dropdown options
+            document.querySelectorAll('.status-option').forEach(option => {
+                option.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    e.stopPropagation(); // Prevent the event from bubbling to the document
+                    const orderId = this.dataset.id;
+                    const newStatus = this.dataset.status;
+                    
+                    try {
+                        // Update order status
+                        const response = await fetch('/update-order', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                order_id: orderId, 
+                                status: newStatus 
+                            })
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error('Failed to update order status');
+                        }
+                        
+                        // Update the UI
+                        const statusCell = this.closest('.status-cell');
+                        const statusBadge = statusCell.querySelector('.status-badge');
+                        
+                        // Update badge class and text
+                        statusBadge.className = `status-badge status-${newStatus.toLowerCase()}`;
+                        statusBadge.textContent = newStatus;
+                        
+                        // Update active class in dropdown
+                        statusCell.querySelectorAll('.status-option').forEach(opt => {
+                            opt.classList.remove('active');
+                        });
+                        this.classList.add('active');
+                        
+                        // Update dataset for sorting
+                        const row = statusCell.closest('tr');
+                        if (row) {
+                            row.dataset.status = newStatus;
+                        }
+                        
+                        // Hide the dropdown after selection
+                        const dropdownContent = this.closest('.status-dropdown-content');
+                        dropdownContent.classList.remove('show');
+                        
+                        // Update action buttons based on the new status
+                        const actionButtonsCell = row.querySelector('.action-buttons');
+                        const isActionable = newStatus === 'pending';
+                        
+                        // Get the view button (always visible)
+                        const viewButton = actionButtonsCell.querySelector('.btn-view');
+                        
+                        // Remove existing edit and delete buttons
+                        const oldButtons = actionButtonsCell.querySelectorAll('button:not(.btn-view)');
+                        oldButtons.forEach(btn => btn.remove());
+                        
+                        // Re-add edit and delete buttons based on new status
+                        if (isActionable) {
+                            // Add edit button for pending orders
+                            const editButton = document.createElement('button');
+                            editButton.className = 'btn btn-icon btn-edit';
+                            editButton.dataset.id = orderId;
+                            editButton.title = 'Edit Order';
+                            editButton.innerHTML = '<i class="fas fa-edit"></i>';
+                            editButton.addEventListener('click', () => editOrder(orderId));
+                            actionButtonsCell.appendChild(editButton);
+                            
+                            // Add delete button for pending orders
+                            const deleteButton = document.createElement('button');
+                            deleteButton.className = 'btn btn-icon btn-delete';
+                            deleteButton.dataset.id = orderId;
+                            deleteButton.title = 'Delete Order';
+                            deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                            deleteButton.addEventListener('click', () => deleteOrder(orderId));
+                            actionButtonsCell.appendChild(deleteButton);
+                        } else {
+                            // Add invisible placeholders for non-pending orders
+                            actionButtonsCell.innerHTML += `
+                                <button class="btn btn-icon" style="visibility: hidden;"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-icon" style="visibility: hidden;"><i class="fas fa-trash-alt"></i></button>
+                            `;
+                        }
+                        
+                    } catch (error) {
+                        console.error('Error updating order status:', error);
+                        alert('Failed to update order status. Please try again.');
+                    }
+                });
+            });
+            
+            // Add event listeners for toggle dropdown on status badge click
+            document.querySelectorAll('.status-badge').forEach(badge => {
+                badge.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    
+                    // Close all other open dropdowns first
+                    document.querySelectorAll('.status-dropdown-content.show').forEach(openDropdown => {
+                        // Don't close the one we're about to toggle
+                        if (openDropdown !== this.nextElementSibling) {
+                            openDropdown.classList.remove('show');
+                        }
+                    });
+                    
+                    // Toggle this dropdown
+                    const dropdownContent = this.nextElementSibling;
+                    dropdownContent.classList.toggle('show');
+                });
+            });
+
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.status-dropdown-content').forEach(content => {
+                    content.classList.remove('show');
+                });
             });
         }
 
@@ -1860,7 +2277,6 @@
                 input.style.width = '100%';
                 input.style.padding = '0.6em';
                 input.style.boxSizing = 'border-box';
-                input.style.borderRadius = '4px';
                 input.style.border = '1px solid #ddd';
                 input.style.marginBottom = '0.5em';
                 input.style.marginTop = '0.3em';
@@ -1881,6 +2297,86 @@
                 });
             });
         });
+
+        // Toggle launch/unlaunch state of a topic
+        async function toggleLaunch(topicId, action) {
+            const endpoint = action === 'lock' ? '/lock-topic' : '/unlock-topic';
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic_id: topicId })
+                });
+                if (!response.ok) {
+                    const result = await response.json();
+                    throw new Error(result.error || 'Failed to change state');
+                }
+                await initDashboard();
+                loadTopicList();
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+        window.toggleLaunch = toggleLaunch;
+
+        // Find topic ID by name
+        function findTopicIdByName(topicName) {
+            for (const key in allOrdersData) {
+                if (key.endsWith('_meta') && key.substring(0, key.length - 5) === topicName) {
+                    const metaData = allOrdersData[key];
+                    return metaData.id;
+                }
+            }
+            return null;
+        }
+
+        // Handle export button click
+        document.getElementById('exportOrdersBtn').addEventListener('click', function() {
+            if (currentTopic === 'all') {
+                // For "All Orders", prompt the user to confirm
+                if (confirm('Export all orders from all topics? This could be a large file.')) {
+                    // Create a map of topic IDs
+                    const topicIds = [];
+                    for (const key in allOrdersData) {
+                        if (key.endsWith('_meta')) {
+                            const topicName = key.substring(0, key.length - 5);
+                            const metaData = allOrdersData[key];
+                            const orders = allOrdersData[topicName] || [];
+                            
+                            if (orders.length > 0 && metaData.id) {
+                                topicIds.push(metaData.id);
+                            }
+                        }
+                    }
+                    
+                    if (topicIds.length === 0) {
+                        alert('No orders found to export.');
+                        return;
+                    }
+                    
+                    // Export all topics by downloading each one (this is a workaround that uses existing endpoints)
+                    topicIds.forEach(topicId => {
+                        window.open(`/export-topic-orders/${topicId}`, '_blank');
+                    });
+                }
+            } else {
+                // For a specific topic, export just that topic's orders
+                const topicId = findTopicIdByName(currentTopic);
+                if (topicId) {
+                    window.location.href = `/export-topic-orders/${topicId}`;
+                } else {
+                    alert('Could not find topic ID for export.');
+                }
+            }
+        });
+
+        // Update the orders heading when a topic is selected
+        function updateOrdersHeading(topicName) {
+            const ordersHeading = document.getElementById('ordersHeading');
+            if (ordersHeading) {
+                ordersHeading.textContent = topicName === 'all' ? 'All Orders' : `Orders: ${topicName}`;
+            }
+        }
 
         // Initialize the dashboard when the page loads
         document.addEventListener('DOMContentLoaded', async () => {

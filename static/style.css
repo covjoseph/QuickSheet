@@ -1,11 +1,13 @@
 /* Common styles for QuickSheet application */
+
 body {
-    font-family: Arial, sans-serif;
+    font-family: Arial, sans-serif !important;
     margin: 0;
     padding: 0;
     background-color: #f5f5f5;
     color: #333;
     line-height: 1.6;
+    font-size: 16px;
 }
 
 header {
@@ -78,6 +80,7 @@ input, select, textarea {
     border-radius: 4px;
     box-sizing: border-box;
     font-size: 1em;
+    font-family: Arial, sans-serif !important;
 }
 
 input:focus, select:focus, textarea:focus {
@@ -125,6 +128,7 @@ button {
     font-size: 1.1em;
     transition: background-color 0.3s;
     font-weight: bold;
+    font-family: Arial, sans-serif !important;
 }
 
 button:hover {
