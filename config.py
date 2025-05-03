@@ -38,6 +38,12 @@ DATA = {
 # Admin credentials (Consider moving to environment variables in production)
 ADMIN = {
     'username': 'admin',
+    'password': 'admin123'  # Current password in use
+}
+
+# Default admin credentials (for reference only)
+DEFAULT_ADMIN = {
+    'username': 'admin',
     'password': 'admin123'
 }
 

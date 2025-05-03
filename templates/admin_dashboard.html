@@ -668,7 +668,7 @@
         <div class="tabs">
         </div>
 
-        <div class="tab-content active" id="orders-tab">
+        <div class="tab-content" id="orders-tab">
             <div class="topics-container" id="topicsContainer">
                 <!-- Topic tabs will be dynamically added here -->
             </div>
@@ -702,7 +702,7 @@
             </div>
         </div>
 
-        <div class="tab-content" id="topics-tab">
+        <div class="tab-content active" id="topics-tab">
             <div class="topic-management-container">
                 <div class="topic-header">
                     <h2>Manage Topics</h2>
@@ -846,6 +846,33 @@
         </div>
     </div>
 
+    <!-- Change Password Modal -->
+    <div class="modal" id="changePasswordModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close-modal" id="closePasswordModal">&times;</span>
+            <h2>Change Admin Password</h2>
+            <div id="passwordUpdateMessage" class="password-message" style="margin-bottom: 1em; padding: 0.8em; border-radius: 4px; display: none;"></div>
+            <form id="changePasswordForm">
+                <div class="topic-form-group">
+                    <label for="currentPassword">Current Password</label>
+                    <input type="password" id="currentPassword" name="currentPassword" required>
+                </div>
+                <div class="topic-form-group">
+                    <label for="newPassword">New Password</label>
+                    <input type="password" id="newPassword" name="newPassword" required minlength="8">
+                </div>
+                <div class="topic-form-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" required minlength="8">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 1em; margin-top: 2em;">
+                    <button type="button" class="btn" style="background-color: #95a5a6; color: white; padding: 0.8em 1.2em;" id="cancelPasswordBtn">Cancel</button>
+                    <button type="submit" class="btn" style="background-color: #3498db; color: white; padding: 0.8em 1.2em;">Update Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         // DOM elements
         const tabs = document.querySelectorAll('.tab');
@@ -954,10 +981,6 @@
         });
 
         document.getElementById('closeConfirmModal').addEventListener('click', () => {
-            confirmDeleteModal.style.display = 'none';
-        });
-
-        document.getElementById('cancelDeleteBtn').addEventListener('click', () => {
             confirmDeleteModal.style.display = 'none';
         });
 
@@ -2269,34 +2292,179 @@
         });
 
         // Enhanced stylings for modal forms to ensure consistency
-        document.addEventListener('DOMContentLoaded', () => {
-            // Apply styles to form inputs inside modals
-            const modalInputs = document.querySelectorAll('.modal input[type="text"], .modal input[type="number"], .modal input[type="email"], .modal input[type="tel"], .modal textarea, .modal select');
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log("DOM Content Loaded. Initializing...");
             
-            modalInputs.forEach(input => {
-                input.style.width = '100%';
-                input.style.padding = '0.6em';
-                input.style.boxSizing = 'border-box';
-                input.style.border = '1px solid #ddd';
-                input.style.marginBottom = '0.5em';
-                input.style.marginTop = '0.3em';
-                input.style.transition = 'border-color 0.3s ease';
-            });
+            // Create tab buttons - Make Topics tab appear first (on the left)
+            const tabsContainer = document.querySelector('.tabs');
+            if (tabsContainer) {
+                tabsContainer.innerHTML = `
+                    <button class="tab active" data-tab="topics">Topics</button>
+                    <button class="tab" data-tab="orders">Orders</button>
+                `;
+                
+                // Re-attach event listeners to the newly created tabs
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        console.log(`Tab clicked: ${tab.dataset.tab}`);
+                        
+                        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                        document.querySelectorAll('.tab-content').forEach(c => {
+                            c.classList.remove('active');
+                            c.style.display = 'none';
+                        });
+
+                        tab.classList.add('active');
+                        const content = document.getElementById(`${tab.dataset.tab}-tab`);
+                        content.classList.add('active');
+                        content.style.display = 'block';
+
+                        if (tab.dataset.tab === 'topics') {
+                            loadTopicList();
+                        } else if (tab.dataset.tab === 'orders') {
+                            // Default to All Orders when the Orders tab is clicked
+                            const allOrdersTab = document.querySelector('.topic-tab[data-topic="all"]');
+                            if (allOrdersTab) {
+                                document.querySelectorAll('.topic-tab').forEach(tab => tab.classList.remove('active'));
+                                allOrdersTab.classList.add('active');
+                                currentTopic = 'all';
+                                displayAllOrders();
+                            }
+                        }
+                    });
+                });
+            }
             
-            // Add hover effects to buttons
-            const buttons = document.querySelectorAll('.btn');
-            buttons.forEach(btn => {
-                btn.addEventListener('mouseenter', function() {
-                    this.style.transform = 'translateY(-2px)';
-                    this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+            await initDashboard();
+            
+            // After dashboard is initialized, load the topics list
+            loadTopicList();
+            
+            // Set the Topics tab as active by default 
+            const topicsTab = document.querySelector('.tab[data-tab="topics"]');
+            if (topicsTab) {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => {
+                    c.classList.remove('active');
+                    c.style.display = 'none';
                 });
                 
-                btn.addEventListener('mouseleave', function() {
-                    this.style.transform = '';
-                    this.style.boxShadow = '';
-                });
-            });
+                topicsTab.classList.add('active');
+                const topicsContent = document.getElementById('topics-tab');
+                topicsContent.classList.add('active');
+                topicsContent.style.display = 'block';
+            }
+            
+            // Check if using default password
+            checkDefaultPassword();
         });
+        
+        // Change Password functionality
+        const changePasswordModal = document.getElementById('changePasswordModal');
+        const changePasswordForm = document.getElementById('changePasswordForm');
+        const closePasswordModal = document.getElementById('closePasswordModal');
+        const cancelPasswordBtn = document.getElementById('cancelPasswordBtn');
+        const passwordUpdateMessage = document.getElementById('passwordUpdateMessage');
+        
+        // Close password modal
+        closePasswordModal.addEventListener('click', () => {
+            changePasswordModal.style.display = 'none';
+        });
+        
+        cancelPasswordBtn.addEventListener('click', () => {
+            changePasswordModal.style.display = 'none';
+        });
+        
+        // Check if using default password and show prompt
+        async function checkDefaultPassword() {
+            try {
+                const response = await fetch('/check-default-password');
+                const data = await response.json();
+                
+                if (data.isDefault) {
+                    // Show modal and warning if using default password
+                    showPasswordUpdateMessage('WARNING: You are using the default password. For security reasons, please change it immediately.', 'warning');
+                    changePasswordModal.style.display = 'flex';
+                }
+            } catch (error) {
+                console.error('Error checking password status:', error);
+            }
+        }
+        
+        // Handle password change form submission
+        changePasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            // Client-side validation
+            if (newPassword !== confirmPassword) {
+                showPasswordUpdateMessage('New password and confirmation do not match.', 'error');
+                return;
+            }
+            
+            if (newPassword.length < 8) {
+                showPasswordUpdateMessage('Password must be at least 8 characters long.', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/change-admin-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        currentPassword: currentPassword,
+                        newPassword: newPassword
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showPasswordUpdateMessage('Password changed successfully!', 'success');
+                    
+                    // Clear the form
+                    document.getElementById('currentPassword').value = '';
+                    document.getElementById('newPassword').value = '';
+                    document.getElementById('confirmPassword').value = '';
+                    
+                    // Close the modal after a delay
+                    setTimeout(() => {
+                        changePasswordModal.style.display = 'none';
+                    }, 2000);
+                } else {
+                    showPasswordUpdateMessage(result.error || 'Failed to change password.', 'error');
+                }
+            } catch (error) {
+                console.error('Error changing password:', error);
+                showPasswordUpdateMessage('An error occurred while changing password.', 'error');
+            }
+        });
+        
+        // Show password update message with type (error, success, warning)
+        function showPasswordUpdateMessage(message, type) {
+            passwordUpdateMessage.textContent = message;
+            passwordUpdateMessage.style.display = 'block';
+            
+            // Set appropriate styling based on message type
+            passwordUpdateMessage.className = 'password-message';
+            
+            if (type === 'error') {
+                passwordUpdateMessage.style.backgroundColor = '#FFEBEE';
+                passwordUpdateMessage.style.color = '#D32F2F';
+                passwordUpdateMessage.style.borderLeft = '4px solid #D32F2F';
+            } else if (type === 'success') {
+                passwordUpdateMessage.style.backgroundColor = '#E8F5E9';
+                passwordUpdateMessage.style.color = '#388E3C';
+                passwordUpdateMessage.style.borderLeft = '4px solid #388E3C';
+            } else if (type === 'warning') {
+                passwordUpdateMessage.style.backgroundColor = '#FFF8E1';
+                passwordUpdateMessage.style.color = '#F57F17';
+                passwordUpdateMessage.style.borderLeft = '4px solid #F57F17';
+            }
+        }
 
         // Toggle launch/unlaunch state of a topic
         async function toggleLaunch(topicId, action) {
@@ -2333,32 +2501,8 @@
         // Handle export button click
         document.getElementById('exportOrdersBtn').addEventListener('click', function() {
             if (currentTopic === 'all') {
-                // For "All Orders", prompt the user to confirm
-                if (confirm('Export all orders from all topics? This could be a large file.')) {
-                    // Create a map of topic IDs
-                    const topicIds = [];
-                    for (const key in allOrdersData) {
-                        if (key.endsWith('_meta')) {
-                            const topicName = key.substring(0, key.length - 5);
-                            const metaData = allOrdersData[key];
-                            const orders = allOrdersData[topicName] || [];
-                            
-                            if (orders.length > 0 && metaData.id) {
-                                topicIds.push(metaData.id);
-                            }
-                        }
-                    }
-                    
-                    if (topicIds.length === 0) {
-                        alert('No orders found to export.');
-                        return;
-                    }
-                    
-                    // Export all topics by downloading each one (this is a workaround that uses existing endpoints)
-                    topicIds.forEach(topicId => {
-                        window.open(`/export-topic-orders/${topicId}`, '_blank');
-                    });
-                }
+                // For "All Orders", simply export all orders with a single call
+                window.location.href = '/export-all-orders';
             } else {
                 // For a specific topic, export just that topic's orders
                 const topicId = findTopicIdByName(currentTopic);
@@ -2378,15 +2522,56 @@
             }
         }
 
-        // Initialize the dashboard when the page loads
+        // Initialize the dashboard when the page loads - SINGLE EVENT HANDLER
         document.addEventListener('DOMContentLoaded', async () => {
             console.log("DOM Content Loaded. Initializing...");
+            
+            // Create tab buttons - Make Topics tab appear first (on the left)
+            const tabsContainer = document.querySelector('.tabs');
+            if (tabsContainer) {
+                tabsContainer.innerHTML = `
+                    <button class="tab active" data-tab="topics">Topics</button>
+                    <button class="tab" data-tab="orders">Orders</button>
+                `;
+                
+                // Re-attach event listeners to the newly created tabs
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        console.log(`Tab clicked: ${tab.dataset.tab}`);
+                        
+                        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                        document.querySelectorAll('.tab-content').forEach(c => {
+                            c.classList.remove('active');
+                            c.style.display = 'none';
+                        });
+
+                        tab.classList.add('active');
+                        const content = document.getElementById(`${tab.dataset.tab}-tab`);
+                        content.classList.add('active');
+                        content.style.display = 'block';
+
+                        if (tab.dataset.tab === 'topics') {
+                            loadTopicList();
+                        } else if (tab.dataset.tab === 'orders') {
+                            // Default to All Orders when the Orders tab is clicked
+                            const allOrdersTab = document.querySelector('.topic-tab[data-topic="all"]');
+                            if (allOrdersTab) {
+                                document.querySelectorAll('.topic-tab').forEach(tab => tab.classList.remove('active'));
+                                allOrdersTab.classList.add('active');
+                                currentTopic = 'all';
+                                displayAllOrders();
+                            }
+                        }
+                    });
+                });
+            }
+            
             await initDashboard();
             
             // After dashboard is initialized, load the topics list
             loadTopicList();
             
-            // Set the Topics tab as active by default
+            // Set the Topics tab as active by default 
             const topicsTab = document.querySelector('.tab[data-tab="topics"]');
             if (topicsTab) {
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -2400,6 +2585,9 @@
                 topicsContent.classList.add('active');
                 topicsContent.style.display = 'block';
             }
+            
+            // Check if using default password
+            checkDefaultPassword();
         });
     </script>
 </body>

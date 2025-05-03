@@ -28,6 +28,7 @@ if not os.path.exists(DATA_DIR):
 def initialize_data_files():
     orders_file_path = os.path.join(DATA_DIR, config.DATA['orders_file'])
     topics_file_path = os.path.join(DATA_DIR, config.DATA['topics_file'])
+    credentials_file_path = os.path.join(DATA_DIR, 'credentials.json')
     
     # Create empty orders.json if it doesn't exist
     if not os.path.exists(orders_file_path):
@@ -40,6 +41,16 @@ def initialize_data_files():
         print(f"Creating empty topics.json file")
         with open(topics_file_path, 'w') as f:
             json.dump({}, f, indent=4)
+            
+    # Create credentials.json with default values if it doesn't exist
+    if not os.path.exists(credentials_file_path):
+        print(f"Creating credentials.json file with default values")
+        with open(credentials_file_path, 'w') as f:
+            json.dump({
+                'username': config.DEFAULT_ADMIN['username'],
+                'password': config.DEFAULT_ADMIN['password'],
+                'is_default': True
+            }, f, indent=4)
 
 # Call initialization function
 initialize_data_files()
@@ -115,6 +126,35 @@ def save_topics_data(data):
     with open(os.path.join(DATA_DIR, config.DATA['topics_file']), 'w') as file:
         json.dump(data, file, indent=4)
 
+def load_credentials():
+    """Load admin credentials from credentials.json"""
+    try:
+        credentials_file_path = os.path.join(DATA_DIR, 'credentials.json')
+        with open(credentials_file_path, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        # If the file doesn't exist, create it with default values
+        default_credentials = {
+            'username': config.DEFAULT_ADMIN['username'],
+            'password': config.DEFAULT_ADMIN['password'],
+            'is_default': True
+        }
+        save_credentials(default_credentials)
+        return default_credentials
+    except json.JSONDecodeError:
+        print("Warning: credentials.json is corrupted or empty. Using defaults.")
+        return {
+            'username': config.DEFAULT_ADMIN['username'],
+            'password': config.DEFAULT_ADMIN['password'],
+            'is_default': True
+        }
+
+def save_credentials(credentials_data):
+    """Save admin credentials to credentials.json"""
+    credentials_file_path = os.path.join(DATA_DIR, 'credentials.json')
+    with open(credentials_file_path, 'w') as f:
+        json.dump(credentials_data, f, indent=4)
+
 # Helper function to get topic ID by name
 def get_topic_id_by_name(topic_name):
     topics_data = load_topics_data()
@@ -176,7 +216,10 @@ migrate_topics_from_orders()
 @app.route('/admin-login', methods=['POST'])
 def admin_login():
     auth_data = request.json
-    if auth_data.get('username') == config.ADMIN['username'] and auth_data.get('password') == config.ADMIN['password']:
+    # Load credentials from credentials.json instead of using config directly
+    credentials = load_credentials()
+    
+    if auth_data.get('username') == credentials['username'] and auth_data.get('password') == credentials['password']:
         session['admin_logged_in'] = True
         session.permanent = True  # Use the permanent session lifetime
         return jsonify({"success": True}), 200
@@ -949,17 +992,200 @@ def export_topic_orders(topic_id):
             # Write the complete row
             writer.writerow(row_data)
         
-        # Prepare response
+        # Prepare response with improved filename including date
         output.seek(0)
+        # Get current date for the filename
+        current_date = datetime.datetime.now().strftime('%Y-%m-%d')
+        # Create a sanitized topic name (replace spaces with underscores)
+        sanitized_topic_name = topic_name.replace(' ', '_').replace('/', '-').replace('\\', '-')
+        # Format the filename with topic name and date
+        filename = f"{sanitized_topic_name}_orders_{current_date}.csv"
+        
         return Response(
             output.getvalue(),
             mimetype="text/csv",
-            headers={"Content-disposition": f"attachment; filename={topic_name}_orders.csv"}
+            headers={"Content-disposition": f"attachment; filename={filename}"}
         )
             
     except Exception as e:
         print(f"Error exporting orders: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/export-all-orders', methods=['GET'])
+@admin_login_required
+def export_all_orders():
+    """Export all orders across all topics in a single CSV file"""
+    try:
+        # Load orders data
+        orders_data = load_orders_data()
+        topics_data = load_topics_data()
+        
+        if not orders_data:
+            return jsonify({"success": False, "error": "No orders found in the system"}), 404
+            
+        # Collect all orders with their topic information
+        all_orders = []
+        
+        # Process each topic ID in orders.json
+        for topic_id, orders in orders_data.items():
+            # Get the topic name for these orders
+            topic_name = get_topic_name_by_id(topic_id) or 'Unknown Topic'
+            
+            # Add topic info to each order and collect them
+            for order in orders:
+                # Create a copy of the order with the topic name
+                order_with_topic = dict(order)
+                order_with_topic['topic'] = topic_name
+                all_orders.append(order_with_topic)
+        
+        if not all_orders:
+            return jsonify({"success": False, "error": "No valid orders found"}), 404
+            
+        # Find the maximum number of items in any order
+        max_items = 0
+        for order in all_orders:
+            items_count = len(order.get('items', []))
+            if items_count > max_items:
+                max_items = items_count
+                
+        # Create CSV
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Create headers for the basic order fields
+        headers = [
+            'Order ID',
+            'Created Date',
+            'Topic',
+            'Division',
+            'Customer Name',
+            'Email',
+            'Phone',
+            'Order Status',
+        ]
+        
+        # Add headers for each item (item1_name, item1_price, etc.)
+        for i in range(1, max_items + 1):
+            headers.extend([
+                f'Item{i} Name',
+                f'Item{i} Price',
+                f'Item{i} Quantity',
+                f'Item{i} Subtotal'
+            ])
+            
+        # Add the order total at the end
+        headers.append('Order Total')
+        
+        # Write the header row
+        writer.writerow(headers)
+        
+        # Write data rows
+        for order in all_orders:
+            order_id = order.get('id', 'N/A')
+            created_at = order.get('created_at', 'N/A')
+            topic_name = order.get('topic', 'N/A')
+            customer_name = order.get('name', 'N/A')
+            division = order.get('division', 'N/A')
+            email = order.get('email', 'N/A')
+            phone = order.get('phone', 'N/A')
+            status = order.get('status', 'pending')
+            total = order.get('total', 0)
+            
+            # Start with the basic order information
+            row_data = [
+                order_id,
+                created_at,
+                topic_name,
+                division,
+                customer_name,
+                email,
+                phone,
+                status,
+            ]
+            
+            # Add item details in columns
+            items = order.get('items', [])
+            for i in range(max_items):
+                if i < len(items):
+                    item = items[i]
+                    row_data.extend([
+                        item.get('name', 'N/A'),
+                        f"{item.get('price', 0):.2f}",
+                        item.get('quantity', 0),
+                        f"{item.get('subtotal', 0):.2f}"
+                    ])
+                else:
+                    # Fill empty item slots
+                    row_data.extend(['', '', '', ''])
+            
+            # Add order total at the end
+            row_data.append(f"{total:.2f}")
+            
+            # Write the complete row
+            writer.writerow(row_data)
+        
+        # Prepare response with improved filename
+        output.seek(0)
+        # Get current date for the filename
+        current_date = datetime.datetime.now().strftime('%Y-%m-%d')
+        # Format the filename
+        filename = f"all_orders_{current_date}.csv"
+        
+        return Response(
+            output.getvalue(),
+            mimetype="text/csv",
+            headers={"Content-disposition": f"attachment; filename={filename}"}
+        )
+            
+    except Exception as e:
+        print(f"Error exporting all orders: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# Server routes for admin password management
+@app.route('/check-default-password', methods=['GET'])
+@admin_login_required
+def check_default_password():
+    # Load credentials from credentials.json
+    credentials = load_credentials()
+    
+    # Check if the is_default flag is set or compare with default credentials
+    is_default = credentials.get('is_default', False) or (
+        credentials['username'] == config.DEFAULT_ADMIN['username'] and 
+        credentials['password'] == config.DEFAULT_ADMIN['password']
+    )
+    
+    return jsonify({'isDefault': is_default}), 200
+
+@app.route('/change-admin-password', methods=['POST'])
+@admin_login_required
+def change_admin_password():
+    try:
+        data = request.json
+        current_password = data.get('currentPassword', '')
+        new_password = data.get('newPassword', '')
+        
+        # Load current credentials
+        credentials = load_credentials()
+        
+        # Verify the current password
+        if current_password != credentials['password']:
+            return jsonify({'success': False, 'error': 'Current password is incorrect'}), 400
+        
+        # Validate the new password
+        if len(new_password) < 8:
+            return jsonify({'success': False, 'error': 'Password must be at least 8 characters long'}), 400
+            
+        # Update the credentials with the new password
+        credentials['password'] = new_password
+        credentials['is_default'] = False  # No longer using the default password
+        
+        # Save the updated credentials to credentials.json
+        save_credentials(credentials)
+        
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        print(f"Error changing password: {str(e)}")
+        return jsonify({'success': False, 'error': 'An error occurred while changing the password'}), 500
 
 if __name__ == '__main__':
     app.run(
